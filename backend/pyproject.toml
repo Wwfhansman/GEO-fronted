@@ -1,7 +1,7 @@
 [project]
 name = "geo-backend"
 version = "0.1.0"
-requires-python = ">=3.11"
+requires-python = ">=3.9"
 dependencies = [
   "fastapi",
   "uvicorn",
@@ -9,7 +9,10 @@ dependencies = [
   "psycopg[binary]",
   "pydantic",
   "pydantic-settings",
-  "python-jose",
+  "python-jose[cryptography]",
   "httpx",
   "pytest"
 ]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]

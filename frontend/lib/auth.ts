@@ -1,19 +1,48 @@
-import { createClient } from "@supabase/supabase-js";
+import { createClient, SupabaseClient } from "@supabase/supabase-js";
 
-export const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-);
+let _supabase: SupabaseClient | null = null;
+
+function getSupabase(): SupabaseClient | null {
+  if (_supabase) return _supabase;
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!url || !key) return null;
+  _supabase = createClient(url, key);
+  return _supabase;
+}
 
 export async function signUpWithEmail(email: string, password: string) {
-  return supabase.auth.signUp({ email, password });
+  const sb = getSupabase();
+  if (!sb) throw new Error("Supabase not available");
+  return sb.auth.signUp({ email, password });
 }
 
 export async function signInWithEmail(email: string, password: string) {
-  return supabase.auth.signInWithPassword({ email, password });
+  const sb = getSupabase();
+  if (!sb) throw new Error("Supabase not available");
+  return sb.auth.signInWithPassword({ email, password });
 }
 
 export async function getAccessToken() {
-  const { data } = await supabase.auth.getSession();
-  return data.session?.access_token ?? null;
+  if (typeof window === "undefined") return null;
+  try {
+    const sb = getSupabase();
+    if (!sb) return null;
+    const { data } = await sb.auth.getSession();
+    return data.session?.access_token ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export async function getCurrentUserEmail() {
+  if (typeof window === "undefined") return null;
+  try {
+    const sb = getSupabase();
+    if (!sb) return null;
+    const { data } = await sb.auth.getSession();
+    return data.session?.user?.email ?? null;
+  } catch {
+    return null;
+  }
 }

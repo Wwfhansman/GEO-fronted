@@ -1,7 +1,12 @@
-from fastapi import APIRouter, Depends
+from collections.abc import Mapping
 
-from app.core.security import require_bearer_token
+from fastapi import APIRouter, Depends
+from sqlalchemy.orm import Session
+
+from app.core.security import require_jwt_claims
+from app.db.session import get_db
 from app.schemas.auth import BootstrapUserRequest, BootstrapUserResponse
+from app.services.user_service import upsert_bootstrap_user
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -9,11 +14,13 @@ router = APIRouter(prefix="/api/auth", tags=["auth"])
 @router.post("/bootstrap", response_model=BootstrapUserResponse)
 def bootstrap_user(
     payload: BootstrapUserRequest,
-    _: str = Depends(require_bearer_token),
+    claims: Mapping[str, object] = Depends(require_jwt_claims),
+    db: Session = Depends(get_db),
 ):
+    user = upsert_bootstrap_user(db, claims, payload)
     return BootstrapUserResponse(
-        user_id="placeholder-user-id",
-        email=payload.email,
-        phone=payload.phone,
-        company_name=payload.company_name,
+        user_id=user.id,
+        email=user.email,
+        phone=user.phone,
+        company_name=user.company_name,
     )
