@@ -15,9 +15,12 @@ def require_admin_token(authorization: Optional[str] = Header(default=None)) -> 
     admin_whitelist = {
         email.strip() for email in settings.admin_email_whitelist.split(",") if email.strip()
     }
-    # Placeholder until JWT parsing + user-email resolution is implemented.
-    # This forces a strict default-deny behavior.
     if not admin_whitelist:
         raise HTTPException(status_code=403, detail="Forbidden")
-    raise HTTPException(status_code=403, detail="Forbidden")
+
+    # Scaffold behavior: token payload is treated as email string.
+    # Replace with real JWT validation + claim extraction in later tasks.
+    if token not in admin_whitelist:
+        raise HTTPException(status_code=403, detail="Forbidden")
+
     return token
