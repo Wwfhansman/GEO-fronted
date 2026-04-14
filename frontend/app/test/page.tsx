@@ -6,10 +6,12 @@ import { RegisterModal } from "../../components/auth/RegisterModal";
 import {
   executeTest,
   getUserContext,
+  listTestRuns,
   submitContactLead,
   UserContext,
   ExecuteTestResponse,
   ExecuteTestRequest,
+  TestRunSummary,
 } from "../../lib/api";
 import { getAccessToken, getCurrentUserEmail } from "../../lib/auth";
 import { loadDraft, saveDraft } from "../../lib/draft";
@@ -24,6 +26,7 @@ export default function TestPage() {
   const [error, setError] = useState("");
   const [lastResult, setLastResult] = useState<ExecuteTestResponse | null>(null);
   const [pendingRequest, setPendingRequest] = useState<ExecuteTestRequest | null>(null);
+  const [history, setHistory] = useState<TestRunSummary[]>([]);
 
   // Form state
   const [companyName, setCompanyName] = useState("");
@@ -42,6 +45,14 @@ export default function TestPage() {
       setIsAuthenticated(true);
       const ctx = await getUserContext();
       setContext(ctx);
+      if (ctx.is_registered) {
+        try {
+          const runs = await listTestRuns();
+          setHistory(runs);
+        } catch {
+          // History fetch failure should not break the main flow
+        }
+      }
     } catch {
       setIsAuthenticated(false);
       setContext(null);
@@ -235,6 +246,46 @@ export default function TestPage() {
           <p>暂无测试结果</p>
         )}
       </section>
+
+      {history.length > 0 && (
+        <section>
+          <h2>测试历史</h2>
+          <div style={{ display: "grid", gap: 8 }}>
+            {history.map((run) => (
+              <a
+                key={run.id}
+                href={`/result/${run.id}`}
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr auto auto",
+                  gap: 12,
+                  alignItems: "center",
+                  border: "1px solid #e5e7eb",
+                  borderRadius: 8,
+                  padding: "8px 12px",
+                  textDecoration: "none",
+                  color: "inherit",
+                }}
+              >
+                <span>
+                  {run.input_company_name} · {run.input_industry} · {run.input_provider}
+                </span>
+                <span
+                  style={{
+                    color: run.is_mentioned ? "#16a34a" : "#dc2626",
+                    fontWeight: "bold",
+                  }}
+                >
+                  {run.is_mentioned ? "已提及" : "未提及"}
+                </span>
+                <span style={{ color: "#999", fontSize: 12 }}>
+                  {new Date(run.created_at).toLocaleString("zh-CN")}
+                </span>
+              </a>
+            ))}
+          </div>
+        </section>
+      )}
 
       <RegisterModal
         open={registerOpen}

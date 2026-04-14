@@ -101,6 +101,20 @@ export interface TestRunDetail {
   created_at: string;
 }
 
+export interface TestRunSummary {
+  id: string;
+  input_company_name: string;
+  input_industry: string;
+  input_provider: string;
+  is_mentioned: boolean | null;
+  status: string;
+  created_at: string;
+}
+
+export function listTestRuns() {
+  return request<TestRunSummary[]>("/api/tests/runs");
+}
+
 export function getTestRun(runId: string) {
   return request<TestRunDetail>(`/api/tests/runs/${runId}`);
 }

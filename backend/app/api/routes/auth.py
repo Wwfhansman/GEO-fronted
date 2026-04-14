@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from app.core.security import require_jwt_claims
 from app.db.session import get_db
 from app.schemas.auth import BootstrapUserRequest, BootstrapUserResponse
+from app.services.analytics import track_event
 from app.services.user_service import upsert_bootstrap_user
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
@@ -18,6 +19,7 @@ def bootstrap_user(
     db: Session = Depends(get_db),
 ):
     user = upsert_bootstrap_user(db, claims, payload)
+    track_event(db, "user_registered", user_id=user.id, properties={"email": user.email})
     return BootstrapUserResponse(
         user_id=user.id,
         email=user.email,

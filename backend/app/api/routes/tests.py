@@ -8,7 +8,8 @@ from app.core.config import settings
 from app.core.security import require_jwt_claims
 from app.db.session import get_db
 from app.models import TestRun, User, UserTestMetrics
-from app.schemas.tests import ExecuteTestRequest, ExecuteTestResponse, TestRunDetail
+from app.schemas.tests import ExecuteTestRequest, ExecuteTestResponse, TestRunDetail, TestRunSummary
+from app.services.analytics import track_event
 from app.services.company_preprocessor import normalize_company_name
 from app.services.llm_review import review_response_with_llm
 from app.services.metrics import calculate_overall_evaluation_text
@@ -116,6 +117,12 @@ def execute_test(
     db.commit()
     db.refresh(run)
 
+    track_event(db, "test_executed", user_id=user.id, properties={
+        "test_run_id": run.id,
+        "provider": payload.provider,
+        "is_mentioned": merged["is_mentioned"],
+    })
+
     return ExecuteTestResponse(
         test_run_id=run.id,
         status="completed",
@@ -125,6 +132,33 @@ def execute_test(
         final_match_source=merged["final_match_source"],
         evaluation_text=llm_review.get("evaluation_text", ""),
     )
+
+
+@router.get("/runs", response_model=list[TestRunSummary])
+def list_test_runs(
+    claims: Mapping[str, object] = Depends(require_jwt_claims),
+    db: Session = Depends(get_db),
+):
+    user = _get_user_or_403(db, claims)
+    runs = (
+        db.query(TestRun)
+        .filter(TestRun.user_id == user.id)
+        .order_by(TestRun.created_at.desc())
+        .limit(50)
+        .all()
+    )
+    return [
+        TestRunSummary(
+            id=r.id,
+            input_company_name=r.input_company_name,
+            input_industry=r.input_industry,
+            input_provider=r.input_provider,
+            is_mentioned=r.is_mentioned,
+            status=r.status,
+            created_at=(r.created_at.isoformat() + "Z") if r.created_at else "",
+        )
+        for r in runs
+    ]
 
 
 @router.get("/runs/{run_id}", response_model=TestRunDetail)
@@ -151,5 +185,5 @@ def get_test_run(
         final_match_source=run.final_match_source,
         evaluation_text=run.evaluation_text,
         status=run.status,
-        created_at=run.created_at.isoformat() if run.created_at else "",
+        created_at=(run.created_at.isoformat() + "Z") if run.created_at else "",
     )

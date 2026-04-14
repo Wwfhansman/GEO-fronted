@@ -48,5 +48,6 @@ class ContactLead(Base):
     email: Mapped[str] = mapped_column(String, nullable=False)
     phone: Mapped[str] = mapped_column(String, nullable=False)
     company_name: Mapped[str] = mapped_column(String, nullable=False)
+    test_summary: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     email_sent: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)

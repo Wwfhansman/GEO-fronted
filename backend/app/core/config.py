@@ -17,6 +17,9 @@ class Settings(BaseSettings):
     doubao_model: str = "doubao-1.5-pro-32k"
     tongyi_model: str = "qwen/qwen3.6-plus"
     review_model_api_key: str = ""
+    email_api_key: str = ""
+    email_from: str = "noreply@geo.example.com"
+    lead_notification_to: str = ""
     cors_allow_origins: str = "http://localhost:3000"
     admin_email_whitelist: str = ""
 

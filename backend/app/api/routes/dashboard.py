@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 
 from app.core.security import require_admin_token
 from app.db.session import get_db
-from app.models import ContactLead, TestRun, User
+from app.models import ContactLead, EventLog, TestRun, User
 
 router = APIRouter(prefix="/api/dashboard", tags=["dashboard"])
 
@@ -31,5 +31,10 @@ def dashboard_summary(
             "registered": user_count,
             "tested": db.query(func.count(func.distinct(TestRun.user_id))).scalar() or 0,
             "contacted": db.query(func.count(func.distinct(ContactLead.user_id))).scalar() or 0,
+        },
+        "event_counts": {
+            "user_registered": db.query(func.count(EventLog.id)).filter(EventLog.event_name == "user_registered").scalar() or 0,
+            "test_executed": db.query(func.count(EventLog.id)).filter(EventLog.event_name == "test_executed").scalar() or 0,
+            "lead_submitted": db.query(func.count(EventLog.id)).filter(EventLog.event_name == "lead_submitted").scalar() or 0,
         },
     }

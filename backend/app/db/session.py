@@ -42,9 +42,15 @@ def get_session_factory():
 
 
 def init_db() -> None:
-    from app.models import ContactLead, TestRun, User, UserTestMetrics  # noqa: F401
+    from app.models import ContactLead, EventLog, TestRun, User, UserTestMetrics  # noqa: F401
 
     Base.metadata.create_all(bind=get_engine())
+
+
+def SessionLocal() -> Session:  # noqa: N802
+    """Return a new session for use outside of request scope (e.g. background threads)."""
+    init_db()
+    return get_session_factory()()
 
 
 def get_db() -> Generator[Session, None, None]:

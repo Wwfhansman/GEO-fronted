@@ -2,5 +2,9 @@ backend/.venv/
 backend/.pytest_cache/
 frontend/node_modules/
 frontend/.next/
+frontend/test-results/
+frontend/playwright-report/
+frontend/tsconfig.tsbuildinfo
+*.DS_Store
 backend/.env
 frontend/.env.local

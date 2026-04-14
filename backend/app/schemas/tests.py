@@ -20,6 +20,16 @@ class ExecuteTestResponse(BaseModel):
     evaluation_text: str
 
 
+class TestRunSummary(BaseModel):
+    id: str
+    input_company_name: str
+    input_industry: str
+    input_provider: str
+    is_mentioned: Optional[bool] = None
+    status: str
+    created_at: str
+
+
 class TestRunDetail(BaseModel):
     id: str
     input_company_name: str
