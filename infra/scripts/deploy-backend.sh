@@ -10,7 +10,7 @@ set -e
 REPO_URL="https://github.com/Wwfhansman/GEO-fronted.git"
 APP_DIR="/opt/geo-backend"
 SERVICE_NAME="geo-backend"
-PORT=8000
+PORT=8001
 
 # ── 颜色输出 ─────────────────────────────────
 GREEN='\033[0;32m'
@@ -140,9 +140,9 @@ if curl -sf "http://localhost:${PORT}/health" > /dev/null 2>&1; then
     log "✅ 部署成功！"
     echo ""
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo "  API 地址：http://223.109.140.174:${PORT}"
-    echo "  API 文档：http://223.109.140.174:${PORT}/docs"
-    echo "  健康检查：http://223.109.140.174:${PORT}/health"
+    echo "  API 地址：http://223.109.140.174:8001"
+    echo "  API 文档：http://223.109.140.174:8001/docs"
+    echo "  健康检查：http://223.109.140.174:8001/health"
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo ""
     echo "常用命令："
