@@ -64,14 +64,14 @@ test("authenticated but unregistered users are routed into bootstrap flow", asyn
     expect(mocks.getUserContext).toHaveBeenCalled();
   });
 
-  fireEvent.change(screen.getByPlaceholderText("公司名"), {
+  fireEvent.change(screen.getByPlaceholderText("例如：华为、阿里"), {
     target: { value: "Acme" },
   });
-  fireEvent.change(screen.getByPlaceholderText("产品关键词"), {
+  fireEvent.change(screen.getByPlaceholderText("输入需要检测的产品关键词，如床垫、电竞椅"), {
     target: { value: "云服务器" },
   });
 
-  fireEvent.click(screen.getByRole("button", { name: "查看AI曝光情况" }));
+  fireEvent.click(screen.getByRole("button", { name: /评估 AI 曝光度/ }));
 
   await waitFor(() => {
     expect(mocks.registerModal.mock.calls.at(-1)?.[0]).toMatchObject({
@@ -101,14 +101,14 @@ test("bootstrap success only executes the pending test once", async () => {
     expect(mocks.getUserContext).toHaveBeenCalled();
   });
 
-  fireEvent.change(screen.getByPlaceholderText("公司名"), {
+  fireEvent.change(screen.getByPlaceholderText("例如：华为、阿里"), {
     target: { value: "Acme" },
   });
-  fireEvent.change(screen.getByPlaceholderText("产品关键词"), {
+  fireEvent.change(screen.getByPlaceholderText("输入需要检测的产品关键词，如床垫、电竞椅"), {
     target: { value: "云服务器" },
   });
 
-  fireEvent.click(screen.getByRole("button", { name: "查看AI曝光情况" }));
+  fireEvent.click(screen.getByRole("button", { name: /评估 AI 曝光度/ }));
 
   await waitFor(() => {
     expect(mocks.registerModal.mock.calls.at(-1)?.[0]).toMatchObject({

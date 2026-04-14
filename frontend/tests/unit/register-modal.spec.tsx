@@ -29,16 +29,16 @@ test("signup without session shows config guidance and skips bootstrap", async (
 
   render(<RegisterModal open onClose={vi.fn()} />);
 
-  fireEvent.change(screen.getByPlaceholderText("邮箱（必填）"), {
+  fireEvent.change(screen.getByPlaceholderText("name@company.com"), {
     target: { value: "user@example.com" },
   });
-  fireEvent.change(screen.getByPlaceholderText("密码（必填）"), {
+  fireEvent.change(screen.getByPlaceholderText("********"), {
     target: { value: "password123" },
   });
-  fireEvent.change(screen.getByPlaceholderText("手机号（必填）"), {
+  fireEvent.change(screen.getByPlaceholderText("13800138000"), {
     target: { value: "13800000000" },
   });
-  fireEvent.change(screen.getByPlaceholderText("公司名（必填）"), {
+  fireEvent.change(screen.getByPlaceholderText("例如：华为、阿里"), {
     target: { value: "Acme" },
   });
 

@@ -1,0 +1,48 @@
+/** @type {import('tailwindcss').Config} */
+module.exports = {
+  content: [
+    "./components/**/*.{js,ts,jsx,tsx,mdx}",
+    "./app/**/*.{js,ts,jsx,tsx,mdx}",
+  ],
+  darkMode: "class",
+  theme: {
+    extend: {
+      colors: {
+        "on-error": "#ef4444",
+        "outline": "#52525b",
+        "inverse-on-surface": "#18181b",
+        "inverse-surface": "#e4e4e7",
+        "on-background": "#fafafa",
+        "on-surface": "#fafafa",
+        "surface": "#09090b",
+        "on-primary-container": "#ffffff",
+        "on-secondary-container": "#ffffff",
+        "surface-container-low": "#18181b",
+        "secondary": "#a1a1aa",
+        "surface-variant": "#27272a",
+        "on-primary": "#000000",
+        "error": "#ef4444",
+        "background": "#09090b",
+        "outline-variant": "#3f3f46",
+        "tertiary": "#d4d4d8",
+        "secondary-container": "#3f3f46",
+        "surface-container-lowest": "#000000",
+        "inverse-primary": "#d4d4d8",
+        "surface-container": "#18181b",
+        "surface-bright": "#27272a",
+        "primary": "#d4d4d8",
+        "primary-container": "#27272a",
+        "on-surface-variant": "#a1a1aa",
+        "error-container": "#7f1d1d",
+        "surface-container-highest": "#3f3f46",
+        "surface-container-high": "#27272a",
+      },
+      fontFamily: {
+        headline: ["Manrope", "sans-serif"],
+        body: ["Inter", "sans-serif"],
+        label: ["Inter", "sans-serif"],
+      },
+    },
+  },
+  plugins: [],
+};

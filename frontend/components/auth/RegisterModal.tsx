@@ -41,10 +41,10 @@ export function RegisterModal({
   function mapAuthError(message: string) {
     const normalized = message.toLowerCase();
     if (normalized.includes("email rate limit exceeded")) {
-      return "当前环境仍在触发邮箱验证发信，但这不是推荐链路。请关闭 Supabase 的邮箱确认后再试。";
+      return "当前环境仍在触发邮箱验证发信，请关闭 Supabase 的邮箱确认后再试。";
     }
     if (normalized.includes("email not confirmed")) {
-      return "当前项目仍要求邮箱验证。按当前产品目标，不建议开启这个限制，请先在 Supabase Auth 设置里关闭邮箱确认。";
+      return "本项目当前仍在要求邮箱验证，请先在 Supabase Auth 设置里关闭邮箱确认。";
     }
     return message;
   }
@@ -62,7 +62,6 @@ export function RegisterModal({
     const form = new FormData(e.currentTarget);
 
     try {
-      // ── Bootstrap mode: supplement phone + company for authenticated user ──
       if (mode === "bootstrap") {
         const email = bootstrapEmail.trim();
         const phone = ((form.get("phone") as string) || "").trim();
@@ -78,7 +77,6 @@ export function RegisterModal({
         return;
       }
 
-      // ── Login tab ──
       if (tab === "login") {
         const email = ((form.get("email") as string) || "").trim();
         const password = ((form.get("password") as string) || "").trim();
@@ -98,7 +96,6 @@ export function RegisterModal({
         return;
       }
 
-      // ── Signup tab ──
       const email = ((form.get("email") as string) || "").trim();
       const password = ((form.get("password") as string) || "").trim();
       const phone = ((form.get("phone") as string) || "").trim();
@@ -134,105 +131,137 @@ export function RegisterModal({
   const isBootstrap = mode === "bootstrap";
 
   return (
-    <section
-      style={{
-        border: "1px solid #d0d0d0",
-        borderRadius: 12,
-        padding: 16,
-        marginTop: 16,
-        background: "#fff",
-      }}
-    >
-      {isBootstrap ? (
-        <>
-          <h2 style={{ marginTop: 0 }}>补充注册信息以继续测试</h2>
-          <p>先完成手机号和公司信息补录，再继续执行测试。</p>
-        </>
-      ) : (
-        <>
-          {/* Tab switcher */}
-          <div style={{ display: "flex", gap: 0, marginBottom: 16, borderBottom: "1px solid #e5e7eb" }}>
-            {(["signup", "login"] as const).map((t) => (
-              <button
-                key={t}
-                type="button"
-                onClick={() => switchTab(t)}
-                style={{
-                  padding: "8px 20px",
-                  border: "none",
-                  borderBottom: tab === t ? "2px solid #0066cc" : "2px solid transparent",
-                  background: "none",
-                  cursor: "pointer",
-                  fontWeight: tab === t ? 600 : 400,
-                  color: tab === t ? "#0066cc" : "#666",
-                }}
-              >
-                {t === "signup" ? "注册" : "登录"}
-              </button>
-            ))}
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+      <div className="bg-surface-container-low border border-outline-variant/50 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden shadow-black">
+        
+        {/* Header */}
+        <div className="flex justify-between items-center p-6 border-b border-outline-variant/30 bg-surface-container-highest/20">
+          <div>
+            <h2 className="text-xl font-bold font-headline">
+              {isBootstrap ? "补充注册信息" : "账户登录与注册"}
+            </h2>
+            <p className="text-xs text-on-surface-variant mt-1">
+              {isBootstrap ? "完成手机号和公司信息补录，继续检测" : "加入 GiuGEO 体验完整智库分析"}
+            </p>
           </div>
-          <p style={{ margin: "0 0 12px", color: "#444" }}>
-            {tab === "signup"
-              ? "注册成功后赠送 3 次免费测试机会。"
-              : "使用已注册的邮箱和密码登录。"}
-          </p>
-        </>
-      )}
+          <button 
+            type="button" 
+            onClick={onClose}
+            className="text-on-surface-variant hover:text-white transition-colors"
+          >
+            <span className="material-symbols-outlined">close</span>
+          </button>
+        </div>
 
-      <form style={{ display: "grid", gap: 8 }} onSubmit={handleSubmit}>
-        {isBootstrap ? (
-          <input
-            type="email"
-            name="email"
-            placeholder="邮箱"
-            value={bootstrapEmail}
-            readOnly
-            aria-readonly="true"
-          />
-        ) : (
-          <input type="email" name="email" placeholder="邮箱（必填）" required />
-        )}
+        <div className="p-6">
+          {!isBootstrap && (
+            <div className="flex mb-6 border-b border-outline-variant/30">
+              {(["signup", "login"] as const).map((t) => (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => switchTab(t)}
+                  className={`flex-1 pb-3 text-sm font-bold uppercase tracking-widest transition-colors ${
+                    tab === t 
+                      ? "text-primary border-b-2 border-primary" 
+                      : "text-on-surface-variant hover:text-on-surface"
+                  }`}
+                >
+                  {t === "signup" ? "注册新账号" : "密码登录"}
+                </button>
+              ))}
+            </div>
+          )}
 
-        {!isBootstrap && (
-          <input type="password" name="password" placeholder="密码（必填）" required minLength={6} />
-        )}
+          <form className="space-y-4" onSubmit={handleSubmit}>
+            {isBootstrap ? (
+              <div className="space-y-1">
+                <label className="text-xs font-bold uppercase tracking-widest text-on-surface-variant">邮箱</label>
+                <input
+                  type="email"
+                  name="email"
+                  value={bootstrapEmail}
+                  readOnly
+                  aria-readonly="true"
+                  className="w-full bg-surface-container-highest border border-outline-variant/50 rounded-lg p-3 text-on-surface opacity-60 cursor-not-allowed"
+                />
+              </div>
+            ) : (
+              <div className="space-y-1">
+                <label className="text-xs font-bold uppercase tracking-widest text-on-surface-variant">邮箱</label>
+                <input 
+                  type="email" 
+                  name="email" 
+                  placeholder="name@company.com" 
+                  required 
+                  className="w-full bg-surface-container-lowest border border-outline-variant/50 focus:border-primary focus:ring-1 focus:ring-primary rounded-lg p-3 text-on-surface transition-colors"
+                />
+              </div>
+            )}
 
-        {/* Phone and company only for signup / bootstrap */}
-        {(isBootstrap || tab === "signup") && (
-          <>
-            <input
-              type="tel"
-              name="phone"
-              placeholder="手机号（必填）"
-              required
-              defaultValue={isBootstrap ? bootstrapPhone : undefined}
-            />
-            <input
-              type="text"
-              name="companyName"
-              placeholder="公司名（必填）"
-              required
-              defaultValue={isBootstrap ? bootstrapCompany : undefined}
-            />
-          </>
-        )}
+            {!isBootstrap && (
+              <div className="space-y-1">
+                <label className="text-xs font-bold uppercase tracking-widest text-on-surface-variant">密码</label>
+                <input 
+                  type="password" 
+                  name="password" 
+                  placeholder="********" 
+                  required 
+                  minLength={6} 
+                  className="w-full bg-surface-container-lowest border border-outline-variant/50 focus:border-primary focus:ring-1 focus:ring-primary rounded-lg p-3 text-on-surface transition-colors"
+                />
+              </div>
+            )}
 
-        {notice && <p style={{ color: "#0a6", margin: 0 }}>{notice}</p>}
-        {error && <p style={{ color: "red", margin: 0 }}>{error}</p>}
+            {(isBootstrap || tab === "signup") && (
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-xs font-bold uppercase tracking-widest text-on-surface-variant">手机号</label>
+                  <input
+                    type="tel"
+                    name="phone"
+                    placeholder="13800138000"
+                    required
+                    defaultValue={isBootstrap ? bootstrapPhone : undefined}
+                    className="w-full bg-surface-container-lowest border border-outline-variant/50 focus:border-primary focus:ring-1 focus:ring-primary rounded-lg p-3 text-on-surface transition-colors"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-bold uppercase tracking-widest text-on-surface-variant">公司名</label>
+                  <input
+                    type="text"
+                    name="companyName"
+                    placeholder="例如：华为、阿里"
+                    required
+                    defaultValue={isBootstrap ? bootstrapCompany : undefined}
+                    className="w-full bg-surface-container-lowest border border-outline-variant/50 focus:border-primary focus:ring-1 focus:ring-primary rounded-lg p-3 text-on-surface transition-colors"
+                  />
+                </div>
+              </div>
+            )}
 
-        <button type="submit" disabled={loading}>
-          {loading
-            ? "处理中..."
-            : isBootstrap
-              ? "完成补录"
-              : tab === "login"
-                ? "立即登录"
-                : "立即注册"}
-        </button>
-        <button type="button" onClick={onClose}>
-          关闭
-        </button>
-      </form>
-    </section>
+            {notice && <div className="text-green-400 text-sm mt-2 flex items-center gap-1"><span className="material-symbols-outlined text-[16px]">info</span>{notice}</div>}
+            {error && <div className="text-red-400 text-sm mt-2 flex items-center gap-1"><span className="material-symbols-outlined text-[16px]">error</span>{error}</div>}
+
+            <div className="pt-4">
+              <button 
+                type="submit" 
+                disabled={loading}
+                className="w-full bg-primary text-on-primary font-bold py-3 rounded-lg hover:bg-white hover:scale-[1.02] transition-all flex justify-center items-center gap-2 outline-none disabled:opacity-70 disabled:hover:scale-100 shadow-[0_0_15px_rgba(255,255,255,0.1)]"
+              >
+                {loading && <span className="material-symbols-outlined text-[20px] animate-spin">refresh</span>}
+                {loading
+                  ? "处理中..."
+                  : isBootstrap
+                    ? "完成补录"
+                    : tab === "login"
+                      ? "立即登录"
+                      : "立即注册"}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
   );
 }

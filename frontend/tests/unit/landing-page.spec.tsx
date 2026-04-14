@@ -6,5 +6,5 @@ import LandingPage from "../../app/page";
 
 test("landing page shows main conversion entry", () => {
   render(<LandingPage />);
-  expect(screen.getByText("立即免费测试")).toBeTruthy();
+  expect(screen.getAllByText("免费检测我的品牌").length).toBeGreaterThan(0);
 });
