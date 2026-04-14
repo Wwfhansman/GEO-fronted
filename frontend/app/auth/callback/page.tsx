@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { getSupabaseClient } from "../../../lib/auth";
 
@@ -10,7 +10,7 @@ type BootstrapDraft = {
   companyName?: string;
 };
 
-export default function AuthCallbackPage() {
+function CallbackHandler() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [message, setMessage] = useState("正在验证身份，请稍候...");
@@ -19,8 +19,6 @@ export default function AuthCallbackPage() {
     async function handleCallback() {
       const code = searchParams.get("code");
       if (!code) {
-        // No code — may be implicit flow with hash token; Supabase JS picks that up automatically.
-        // Give it a moment then redirect.
         setTimeout(() => router.replace("/test"), 500);
         return;
       }
@@ -37,12 +35,9 @@ export default function AuthCallbackPage() {
         return;
       }
 
-      const {
-        data: { session },
-      } = await sb.auth.getSession();
+      const { data: { session } } = await sb.auth.getSession();
       const sessionUser = session?.user;
 
-      // Auto-bootstrap after verification. Prefer session metadata, then fall back to local draft.
       try {
         const raw = localStorage.getItem("geo_pending_bootstrap");
         const localDraft: BootstrapDraft | null = raw ? JSON.parse(raw) as BootstrapDraft : null;
@@ -71,9 +66,15 @@ export default function AuthCallbackPage() {
     handleCallback();
   }, [router, searchParams]);
 
+  return <p>{message}</p>;
+}
+
+export default function AuthCallbackPage() {
   return (
     <main style={{ maxWidth: 480, margin: "80px auto", textAlign: "center", padding: 24 }}>
-      <p>{message}</p>
+      <Suspense fallback={<p>正在验证身份，请稍候...</p>}>
+        <CallbackHandler />
+      </Suspense>
     </main>
   );
 }
