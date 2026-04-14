@@ -27,18 +27,27 @@ test("signup without session shows config guidance and skips bootstrap", async (
     error: null,
   });
 
-  render(<RegisterModal open onClose={vi.fn()} />);
+  const { container } = render(<RegisterModal open onClose={vi.fn()} />);
+  const emailInput = container.querySelector('input[name="email"]');
+  const passwordInput = container.querySelector('input[name="password"]');
+  const phoneInput = container.querySelector('input[name="phone"]');
+  const companyInput = container.querySelector('input[name="companyName"]');
 
-  fireEvent.change(screen.getByPlaceholderText("name@company.com"), {
+  expect(emailInput).toBeTruthy();
+  expect(passwordInput).toBeTruthy();
+  expect(phoneInput).toBeTruthy();
+  expect(companyInput).toBeTruthy();
+
+  fireEvent.change(emailInput!, {
     target: { value: "user@example.com" },
   });
-  fireEvent.change(screen.getByPlaceholderText("********"), {
+  fireEvent.change(passwordInput!, {
     target: { value: "password123" },
   });
-  fireEvent.change(screen.getByPlaceholderText("13800138000"), {
+  fireEvent.change(phoneInput!, {
     target: { value: "13800000000" },
   });
-  fireEvent.change(screen.getByPlaceholderText("例如：华为、阿里"), {
+  fireEvent.change(companyInput!, {
     target: { value: "Acme" },
   });
 

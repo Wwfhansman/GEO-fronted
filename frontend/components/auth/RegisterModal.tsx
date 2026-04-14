@@ -133,7 +133,7 @@ export function RegisterModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
       <div className="bg-surface-container-low border border-outline-variant/50 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden shadow-black">
-        
+
         {/* Header */}
         <div className="flex justify-between items-center p-6 border-b border-outline-variant/30 bg-surface-container-highest/20">
           <div>
@@ -144,8 +144,8 @@ export function RegisterModal({
               {isBootstrap ? "完成手机号和公司信息补录，继续检测" : "加入 GiuGEO 体验完整智库分析"}
             </p>
           </div>
-          <button 
-            type="button" 
+          <button
+            type="button"
             onClick={onClose}
             className="text-on-surface-variant hover:text-white transition-colors"
           >
@@ -161,11 +161,10 @@ export function RegisterModal({
                   key={t}
                   type="button"
                   onClick={() => switchTab(t)}
-                  className={`flex-1 pb-3 text-sm font-bold uppercase tracking-widest transition-colors ${
-                    tab === t 
-                      ? "text-primary border-b-2 border-primary" 
+                  className={`flex-1 pb-3 text-sm font-bold uppercase tracking-widest transition-colors ${tab === t
+                      ? "text-primary border-b-2 border-primary"
                       : "text-on-surface-variant hover:text-on-surface"
-                  }`}
+                    }`}
                 >
                   {t === "signup" ? "注册新账号" : "密码登录"}
                 </button>
@@ -189,11 +188,10 @@ export function RegisterModal({
             ) : (
               <div className="space-y-1">
                 <label className="text-xs font-bold uppercase tracking-widest text-on-surface-variant">邮箱</label>
-                <input 
-                  type="email" 
-                  name="email" 
-                  placeholder="name@company.com" 
-                  required 
+                <input
+                  type="email"
+                  name="email"
+                  required
                   className="w-full bg-surface-container-lowest border border-outline-variant/50 focus:border-primary focus:ring-1 focus:ring-primary rounded-lg p-3 text-on-surface transition-colors"
                 />
               </div>
@@ -202,12 +200,11 @@ export function RegisterModal({
             {!isBootstrap && (
               <div className="space-y-1">
                 <label className="text-xs font-bold uppercase tracking-widest text-on-surface-variant">密码</label>
-                <input 
-                  type="password" 
-                  name="password" 
-                  placeholder="********" 
-                  required 
-                  minLength={6} 
+                <input
+                  type="password"
+                  name="password"
+                  required
+                  minLength={6}
                   className="w-full bg-surface-container-lowest border border-outline-variant/50 focus:border-primary focus:ring-1 focus:ring-primary rounded-lg p-3 text-on-surface transition-colors"
                 />
               </div>
@@ -220,7 +217,6 @@ export function RegisterModal({
                   <input
                     type="tel"
                     name="phone"
-                    placeholder="13800138000"
                     required
                     defaultValue={isBootstrap ? bootstrapPhone : undefined}
                     className="w-full bg-surface-container-lowest border border-outline-variant/50 focus:border-primary focus:ring-1 focus:ring-primary rounded-lg p-3 text-on-surface transition-colors"
@@ -231,7 +227,6 @@ export function RegisterModal({
                   <input
                     type="text"
                     name="companyName"
-                    placeholder="例如：华为、阿里"
                     required
                     defaultValue={isBootstrap ? bootstrapCompany : undefined}
                     className="w-full bg-surface-container-lowest border border-outline-variant/50 focus:border-primary focus:ring-1 focus:ring-primary rounded-lg p-3 text-on-surface transition-colors"
@@ -244,8 +239,8 @@ export function RegisterModal({
             {error && <div className="text-red-400 text-sm mt-2 flex items-center gap-1"><span className="material-symbols-outlined text-[16px]">error</span>{error}</div>}
 
             <div className="pt-4">
-              <button 
-                type="submit" 
+              <button
+                type="submit"
                 disabled={loading}
                 className="w-full bg-primary text-on-primary font-bold py-3 rounded-lg hover:bg-white hover:scale-[1.02] transition-all flex justify-center items-center gap-2 outline-none disabled:opacity-70 disabled:hover:scale-100 shadow-[0_0_15px_rgba(255,255,255,0.1)]"
               >
