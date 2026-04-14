@@ -1,6 +1,8 @@
 from collections.abc import Mapping
-from typing import Optional
+from functools import lru_cache
+from typing import Any, Optional
 
+import httpx
 from fastapi import Depends, Header, HTTPException
 from jose import JWTError, jwt
 
@@ -13,12 +15,41 @@ def require_bearer_token(authorization: Optional[str] = Header(default=None)) ->
     return authorization.removeprefix("Bearer ")
 
 
+@lru_cache(maxsize=1)
+def _fetch_jwks() -> dict[str, Any]:
+    project_url = settings.supabase_project_url.strip().rstrip("/")
+    if not project_url:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    jwks_url = f"{project_url}/auth/v1/.well-known/jwks.json"
+    try:
+        response = httpx.get(jwks_url, timeout=5.0)
+        response.raise_for_status()
+        payload = response.json()
+    except Exception as exc:  # pragma: no cover - network failures are environment-specific
+        raise HTTPException(status_code=401, detail="Unauthorized") from exc
+
+    if not isinstance(payload, dict) or not isinstance(payload.get("keys"), list):
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    return payload
+
+
 def decode_supabase_jwt(token: str) -> Mapping[str, object]:
     try:
+        header = jwt.get_unverified_header(token)
+        alg = str(header.get("alg", "")).upper()
+        if alg.startswith("HS"):
+            return jwt.decode(
+                token,
+                settings.supabase_jwt_secret,
+                algorithms=[alg or "HS256"],
+                options={"verify_aud": False},
+            )
+
         return jwt.decode(
             token,
-            settings.supabase_jwt_secret,
-            algorithms=["HS256"],
+            _fetch_jwks(),
+            algorithms=[alg] if alg else ["RS256", "ES256"],
             options={"verify_aud": False},
         )
     except JWTError as exc:

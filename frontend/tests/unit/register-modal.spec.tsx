@@ -21,7 +21,7 @@ beforeEach(() => {
   vi.clearAllMocks();
 });
 
-test("signup without session shows verification guidance and skips bootstrap", async () => {
+test("signup without session shows config guidance and skips bootstrap", async () => {
   mocks.signUpWithEmail.mockResolvedValue({
     data: { session: null },
     error: null,
@@ -42,12 +42,17 @@ test("signup without session shows verification guidance and skips bootstrap", a
     target: { value: "Acme" },
   });
 
-  fireEvent.click(screen.getByRole("button", { name: "注册" }));
+  fireEvent.click(screen.getByRole("button", { name: "立即注册" }));
 
   await waitFor(() =>
     expect(
-      screen.getByText("验证邮件已发送。请先完成邮箱验证并登录，之后再继续完成账号初始化。")
+      screen.getByText("注册后没有拿到登录态。当前项目大概率仍开启了邮箱验证，请先关闭 Supabase 的 Confirm email。")
     ).toBeTruthy()
+  );
+  expect(mocks.signUpWithEmail).toHaveBeenCalledWith(
+    "user@example.com",
+    "password123",
+    { phone: "13800000000", companyName: "Acme" }
   );
   expect(mocks.bootstrapUser).not.toHaveBeenCalled();
 });

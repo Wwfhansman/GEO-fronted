@@ -8,6 +8,7 @@ from app.api.routes.leads import router as leads_router
 from app.api.routes.tests import router as tests_router
 from app.core.config import settings
 from app.core.cors import install_cors
+from app.db.session import init_db
 
 app = FastAPI(title="GEO Backend")
 install_cors(app, settings.cors_allow_origins.split(","))
@@ -17,3 +18,8 @@ app.include_router(context_router)
 app.include_router(tests_router)
 app.include_router(leads_router)
 app.include_router(dashboard_router)
+
+
+@app.on_event("startup")
+def startup_init_db() -> None:
+    init_db()

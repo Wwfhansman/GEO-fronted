@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from threading import Lock
 from typing import Generator
 
 from sqlalchemy import create_engine
@@ -15,6 +16,8 @@ class Base(DeclarativeBase):
 
 _engine = None
 _session_factory = None
+_db_initialized = False
+_db_init_lock = Lock()
 
 
 def _sqlite_connect_args(database_url: str) -> dict[str, bool]:
@@ -42,9 +45,17 @@ def get_session_factory():
 
 
 def init_db() -> None:
+    global _db_initialized
+    if _db_initialized:
+        return
+
     from app.models import ContactLead, EventLog, TestRun, User, UserTestMetrics  # noqa: F401
 
-    Base.metadata.create_all(bind=get_engine())
+    with _db_init_lock:
+        if _db_initialized:
+            return
+        Base.metadata.create_all(bind=get_engine())
+        _db_initialized = True
 
 
 def SessionLocal() -> Session:  # noqa: N802
@@ -63,12 +74,13 @@ def get_db() -> Generator[Session, None, None]:
 
 
 def reset_database_for_tests() -> None:
-    global _engine, _session_factory
+    global _engine, _session_factory, _db_initialized
 
     if _engine is not None:
         _engine.dispose()
     _engine = None
     _session_factory = None
+    _db_initialized = False
 
     database_url = settings.database_url
     if database_url.startswith("sqlite:///"):

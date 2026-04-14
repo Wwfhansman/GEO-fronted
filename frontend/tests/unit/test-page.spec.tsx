@@ -83,3 +83,55 @@ test("authenticated but unregistered users are routed into bootstrap flow", asyn
 
   expect(mocks.executeTest).not.toHaveBeenCalled();
 });
+
+test("bootstrap success only executes the pending test once", async () => {
+  mocks.executeTest.mockResolvedValue({
+    test_run_id: "run-1",
+    status: "completed",
+    is_mentioned: true,
+    mentioned_count_for_query: 1,
+    exposure_count_for_query: 1,
+    final_match_source: "rule",
+    evaluation_text: "ok",
+  });
+
+  render(<TestPage />);
+
+  await waitFor(() => {
+    expect(mocks.getUserContext).toHaveBeenCalled();
+  });
+
+  fireEvent.change(screen.getByPlaceholderText("公司名"), {
+    target: { value: "Acme" },
+  });
+  fireEvent.change(screen.getByPlaceholderText("产品关键词"), {
+    target: { value: "云服务器" },
+  });
+
+  fireEvent.click(screen.getByRole("button", { name: "查看AI曝光情况" }));
+
+  await waitFor(() => {
+    expect(mocks.registerModal.mock.calls.at(-1)?.[0]).toMatchObject({
+      open: true,
+      mode: "bootstrap",
+    });
+  });
+
+  mocks.getUserContext.mockResolvedValue({
+    is_registered: true,
+    total_query_count: 1,
+    total_mentioned_count: 1,
+    total_exposure_count: 1,
+    free_test_quota_remaining: 2,
+    overall_evaluation_text: "ok",
+  });
+
+  const onSuccess = mocks.registerModal.mock.calls.at(-1)?.[0].onSuccess as (() => Promise<void>) | undefined;
+  expect(onSuccess).toBeTruthy();
+
+  await Promise.all([onSuccess?.(), onSuccess?.()]);
+
+  await waitFor(() => {
+    expect(mocks.executeTest).toHaveBeenCalledTimes(1);
+  });
+});

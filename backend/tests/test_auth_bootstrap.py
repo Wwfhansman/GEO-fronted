@@ -58,3 +58,34 @@ def test_bootstrap_user_rejects_invalid_jwt():
         json={"email": "x@example.com", "phone": "123", "company_name": "Bad"},
     )
     assert response.status_code == 401
+
+
+def test_bootstrap_user_accepts_asymmetric_jwt_via_jwks(monkeypatch):
+    from app.core import security
+
+    client = TestClient(app)
+
+    def fake_fetch_jwks():
+        return {"keys": [{"kid": "test-key", "alg": "RS256", "kty": "RSA"}]}
+
+    def fake_decode(token, key, algorithms, options):
+        assert key == {"keys": [{"kid": "test-key", "alg": "RS256", "kty": "RSA"}]}
+        assert algorithms == ["RS256"]
+        return {"sub": "auth-rs", "email": "rsa@example.com", "email_verified": True}
+
+    monkeypatch.setattr(security.jwt, "get_unverified_header", lambda token: {"alg": "RS256", "kid": "test-key"})
+    monkeypatch.setattr(security, "_fetch_jwks", fake_fetch_jwks)
+    monkeypatch.setattr(security.jwt, "decode", fake_decode)
+
+    response = client.post(
+        "/api/auth/bootstrap",
+        headers={"Authorization": "Bearer rsa-token"},
+        json={
+            "email": "ignored@example.com",
+            "phone": "13800000000",
+            "company_name": "Asymmetric Co",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json()["email"] == "rsa@example.com"

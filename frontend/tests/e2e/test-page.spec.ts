@@ -26,9 +26,10 @@ test.describe("Test page", () => {
     await page.getByPlaceholder("公司名").fill("TestCo");
     await page.getByPlaceholder("产品关键词").fill("测试产品");
     await page.getByRole("button", { name: "查看AI曝光情况" }).click();
-    // Registration modal should appear (either signup or bootstrap depending on auth state)
+    // Registration modal should appear with signup/login tabs
     // Since no Supabase is configured, the user is unauthenticated
-    await expect(page.getByText("完成注册后即可查看测试结果")).toBeVisible({ timeout: 5000 });
+    await expect(page.getByRole("button", { name: "立即注册" })).toBeVisible({ timeout: 5000 });
+    await expect(page.getByRole("button", { name: "登录" , exact: true })).toBeVisible({ timeout: 5000 });
   });
 
   test("has no horizontal overflow on mobile", async ({ page }) => {

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 
 import { RegisterModal } from "../../components/auth/RegisterModal";
 import {
@@ -13,13 +13,16 @@ import {
   ExecuteTestRequest,
   TestRunSummary,
 } from "../../lib/api";
-import { getAccessToken, getCurrentUserEmail } from "../../lib/auth";
+import { getAccessToken, getCurrentUserEmail, signOut } from "../../lib/auth";
 import { loadDraft, saveDraft } from "../../lib/draft";
 
 export default function TestPage() {
   const [registerOpen, setRegisterOpen] = useState(false);
   const [registerMode, setRegisterMode] = useState<"signup" | "bootstrap">("signup");
   const [bootstrapEmail, setBootstrapEmail] = useState("");
+  const [bootstrapPhone, setBootstrapPhone] = useState("");
+  const [bootstrapCompany, setBootstrapCompany] = useState("");
+  const [currentEmail, setCurrentEmail] = useState("");
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [context, setContext] = useState<UserContext | null>(null);
   const [loading, setLoading] = useState(false);
@@ -27,6 +30,9 @@ export default function TestPage() {
   const [lastResult, setLastResult] = useState<ExecuteTestResponse | null>(null);
   const [pendingRequest, setPendingRequest] = useState<ExecuteTestRequest | null>(null);
   const [history, setHistory] = useState<TestRunSummary[]>([]);
+  const pendingRequestRef = useRef<ExecuteTestRequest | null>(null);
+  const executeInFlightRef = useRef(false);
+  const bootstrapInFlightRef = useRef(false);
 
   // Form state
   const [companyName, setCompanyName] = useState("");
@@ -43,6 +49,8 @@ export default function TestPage() {
         return;
       }
       setIsAuthenticated(true);
+      const email = await getCurrentUserEmail();
+      setCurrentEmail(email || "");
       const ctx = await getUserContext();
       setContext(ctx);
       if (ctx.is_registered) {
@@ -56,11 +64,16 @@ export default function TestPage() {
     } catch {
       setIsAuthenticated(false);
       setContext(null);
+      setCurrentEmail("");
     }
   }, []);
 
   const executeRequest = useCallback(
     async (request: ExecuteTestRequest) => {
+      if (executeInFlightRef.current) {
+        return;
+      }
+      executeInFlightRef.current = true;
       setError("");
       setLoading(true);
       try {
@@ -70,6 +83,7 @@ export default function TestPage() {
       } catch (err) {
         setError(err instanceof Error ? err.message : "测试执行失败");
       } finally {
+        executeInFlightRef.current = false;
         setLoading(false);
       }
     },
@@ -77,14 +91,23 @@ export default function TestPage() {
   );
 
   const handleBootstrapSuccess = useCallback(async () => {
-    setRegisterOpen(false);
-    await refreshContext();
-    const request = pendingRequest;
-    setPendingRequest(null);
-    if (request) {
-      await executeRequest(request);
+    if (bootstrapInFlightRef.current) {
+      return;
     }
-  }, [executeRequest, pendingRequest, refreshContext]);
+    bootstrapInFlightRef.current = true;
+    const request = pendingRequestRef.current;
+    pendingRequestRef.current = null;
+    setPendingRequest(null);
+    setRegisterOpen(false);
+    try {
+      await refreshContext();
+      if (request) {
+        await executeRequest(request);
+      }
+    } finally {
+      bootstrapInFlightRef.current = false;
+    }
+  }, [executeRequest, refreshContext]);
 
   // Load draft and check auth on mount
   useEffect(() => {
@@ -132,14 +155,35 @@ export default function TestPage() {
 
     if (!context.is_registered) {
       setError("");
+      pendingRequestRef.current = request;
       setPendingRequest(request);
       setRegisterMode("bootstrap");
-      setBootstrapEmail(await getCurrentUserEmail() || "");
+      const email = await getCurrentUserEmail() || "";
+      setBootstrapEmail(email);
+
+      // Pre-fill phone/company from pending bootstrap data saved before email verification
+      try {
+        const raw = localStorage.getItem("geo_pending_bootstrap");
+        if (raw) {
+          const pending = JSON.parse(raw) as { phone?: string; companyName?: string };
+          setBootstrapPhone(pending.phone || "");
+          setBootstrapCompany(pending.companyName || "");
+        }
+      } catch { /* ignore */ }
+
       setRegisterOpen(true);
       return;
     }
 
     await executeRequest(request);
+  }
+
+  async function handleSignOut() {
+    await signOut();
+    setIsAuthenticated(false);
+    setContext(null);
+    setCurrentEmail("");
+    setHistory([]);
   }
 
   async function handleContactSales() {
@@ -157,6 +201,30 @@ export default function TestPage() {
 
   return (
     <main style={{ maxWidth: 960, margin: "0 auto", padding: 24, display: "grid", gap: 16 }}>
+      {/* Auth status bar */}
+      <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 12, fontSize: 14 }}>
+        {isAuthenticated ? (
+          <>
+            <span style={{ color: "#666" }}>{currentEmail}</span>
+            <button
+              type="button"
+              onClick={handleSignOut}
+              style={{ padding: "4px 12px", borderRadius: 6, border: "1px solid #d0d0d0", cursor: "pointer", background: "#fff" }}
+            >
+              退出登录
+            </button>
+          </>
+        ) : (
+          <button
+            type="button"
+            onClick={() => { setRegisterMode("signup"); setRegisterOpen(true); }}
+            style={{ padding: "4px 12px", borderRadius: 6, border: "1px solid #0066cc", cursor: "pointer", background: "#fff", color: "#0066cc" }}
+          >
+            登录 / 注册
+          </button>
+        )}
+      </div>
+
       <section
         style={{
           border: "1px solid #d0d0d0",
@@ -291,6 +359,8 @@ export default function TestPage() {
         open={registerOpen}
         mode={registerMode}
         bootstrapEmail={bootstrapEmail}
+        bootstrapPhone={bootstrapPhone}
+        bootstrapCompany={bootstrapCompany}
         onClose={() => setRegisterOpen(false)}
         onSuccess={registerMode === "bootstrap" ? handleBootstrapSuccess : refreshContext}
       />

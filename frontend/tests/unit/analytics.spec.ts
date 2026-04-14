@@ -1,3 +1,5 @@
+import { expect, test } from "vitest";
+
 import { trackEvent } from "../../lib/analytics";
 
 test("trackEvent is defined", () => {
