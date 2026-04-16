@@ -1,11 +1,21 @@
 import { getAccessToken } from "./auth";
+import { getVisitorId } from "./analytics";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
 
 async function authHeaders(): Promise<Record<string, string>> {
   const token = await getAccessToken();
-  if (!token) return {};
-  return { Authorization: `Bearer ${token}` };
+  const visitorId = typeof window !== "undefined" ? getVisitorId() : null;
+  const headers: Record<string, string> = {};
+
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+  if (visitorId) {
+    headers["X-Visitor-Id"] = visitorId;
+  }
+
+  return headers;
 }
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {

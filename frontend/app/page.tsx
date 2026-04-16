@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 
 const faqsData = [
@@ -96,6 +96,7 @@ const industriesData = [
 import { Header } from "../components/layout/Header";
 import { Footer } from "../components/layout/Footer";
 import { RegisterModal } from "../components/auth/RegisterModal";
+import { trackEvent } from "../lib/analytics";
 import { getAccessToken, getCurrentUserEmail, signOut } from "../lib/auth";
 import { saveDraft } from "../lib/draft";
 
@@ -105,10 +106,15 @@ export default function LandingPage() {
   const [registerOpen, setRegisterOpen] = useState(false);
   const [selectedIndustryIdx, setSelectedIndustryIdx] = useState(0);
   const [openFaqIdx, setOpenFaqIdx] = useState<number | null>(0);
+  const trackedViewRef = useRef(false);
 
   const activeData = industriesData[selectedIndustryIdx];
 
   const handleIndustryCTA = (name: string) => {
+    trackEvent("landing_industry_cta_click", {
+      page: "landing",
+      industry: name,
+    });
     try {
       saveDraft({
         companyName: "",
@@ -121,6 +127,10 @@ export default function LandingPage() {
   };
 
   useEffect(() => {
+    if (!trackedViewRef.current) {
+      trackEvent("landing_view", { page: "landing" });
+      trackedViewRef.current = true;
+    }
     getAccessToken().then(token => setIsAuthenticated(!!token));
     getCurrentUserEmail().then(email => setCurrentEmail(email || ""));
   }, []);
@@ -168,6 +178,7 @@ export default function LandingPage() {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
             <Link
               href="/test"
+              onClick={() => trackEvent("landing_primary_cta_click", { page: "landing", source: "hero" })}
               className="bg-primary text-on-primary shadow-[0_0_20px_rgba(255,255,255,0.15)] hover:scale-105 duration-300 ease-out px-10 py-5 rounded-lg font-extrabold text-lg flex items-center gap-2"
             >
               免费检测我的品牌

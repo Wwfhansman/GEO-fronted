@@ -4,7 +4,7 @@ from pathlib import Path
 from threading import Lock
 from typing import Generator
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
 from app.core.config import settings
@@ -44,6 +44,21 @@ def get_session_factory():
     return _session_factory
 
 
+def _ensure_event_logs_schema() -> None:
+    engine = get_engine()
+    inspector = inspect(engine)
+
+    if "event_logs" not in inspector.get_table_names():
+        return
+
+    column_names = {column["name"] for column in inspector.get_columns("event_logs")}
+    if "visitor_id" in column_names:
+        return
+
+    with engine.begin() as connection:
+        connection.execute(text("ALTER TABLE event_logs ADD COLUMN visitor_id VARCHAR"))
+
+
 def init_db() -> None:
     global _db_initialized
     if _db_initialized:
@@ -55,6 +70,7 @@ def init_db() -> None:
         if _db_initialized:
             return
         Base.metadata.create_all(bind=get_engine())
+        _ensure_event_logs_schema()
         _db_initialized = True
 
 

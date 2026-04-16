@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Header } from "../../../components/layout/Header";
 import { Footer } from "../../../components/layout/Footer";
 import { getTestRun, submitContactLead, TestRunDetail } from "../../../lib/api";
+import { trackEvent } from "../../../lib/analytics";
 import { getAccessToken, getCurrentUserEmail, signOut } from "../../../lib/auth";
 
 export default function ResultPage() {
@@ -33,18 +34,28 @@ export default function ResultPage() {
     if (!id) return;
     setLoading(true);
     getTestRun(id)
-      .then(setRun)
+      .then((data) => {
+        setRun(data);
+        trackEvent("result_page_view", {
+          page: "result",
+          test_run_id: id,
+          provider: data.input_provider,
+          industry: data.input_industry,
+        });
+      })
       .catch((err) => setError(err instanceof Error ? err.message : "加载失败"))
       .finally(() => setLoading(false));
   }, [id]);
 
   async function handleContactSales() {
     try {
+      trackEvent("lead_click", { page: "result", source: "result_cta" });
       await submitContactLead({
         test_run_id: id,
         test_summary: { is_mentioned: run?.is_mentioned },
       });
       setContactSubmitted(true);
+      trackEvent("lead_submitted_frontend", { page: "result", source: "result_cta" });
     } catch (err) {
       setError(err instanceof Error ? err.message : "提交失败");
     }

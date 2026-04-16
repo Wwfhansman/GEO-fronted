@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 
+from app.api.routes.analytics import router as analytics_router
 from app.api.routes.auth import router as auth_router
 from app.api.routes.context import router as context_router
 from app.api.routes.dashboard import router as dashboard_router
@@ -13,6 +14,7 @@ from app.db.session import init_db
 app = FastAPI(title="GEO Backend")
 install_cors(app, settings.cors_allow_origins.split(","))
 app.include_router(health_router)
+app.include_router(analytics_router)
 app.include_router(auth_router)
 app.include_router(context_router)
 app.include_router(tests_router)

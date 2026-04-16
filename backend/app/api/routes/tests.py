@@ -1,7 +1,8 @@
 from collections.abc import Mapping
 from datetime import datetime
+from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
@@ -33,6 +34,7 @@ def _get_user_or_403(session: Session, claims: Mapping[str, object]) -> User:
 def execute_test(
     payload: ExecuteTestRequest,
     claims: Mapping[str, object] = Depends(require_jwt_claims),
+    x_visitor_id: Optional[str] = Header(default=None),
     db: Session = Depends(get_db),
 ):
     user = _get_user_or_403(db, claims)
@@ -117,11 +119,17 @@ def execute_test(
     db.commit()
     db.refresh(run)
 
-    track_event(db, "test_executed", user_id=user.id, properties={
-        "test_run_id": run.id,
-        "provider": payload.provider,
-        "is_mentioned": merged["is_mentioned"],
-    })
+    track_event(
+        db,
+        "test_executed",
+        user_id=user.id,
+        visitor_id=x_visitor_id,
+        properties={
+            "test_run_id": run.id,
+            "provider": payload.provider,
+            "is_mentioned": merged["is_mentioned"],
+        },
+    )
 
     return ExecuteTestResponse(
         test_run_id=run.id,

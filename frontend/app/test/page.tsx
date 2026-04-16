@@ -15,6 +15,7 @@ import {
   ExecuteTestRequest,
   TestRunSummary,
 } from "../../lib/api";
+import { trackEvent } from "../../lib/analytics";
 import { getAccessToken, getCurrentUserEmail, signOut } from "../../lib/auth";
 import { loadDraft, saveDraft } from "../../lib/draft";
 
@@ -40,6 +41,8 @@ export default function TestPage() {
   const pendingRequestRef = useRef<ExecuteTestRequest | null>(null);
   const executeInFlightRef = useRef(false);
   const bootstrapInFlightRef = useRef(false);
+  const trackedViewRef = useRef(false);
+  const formStartedRef = useRef(false);
 
   // Form state
   const [companyName, setCompanyName] = useState("");
@@ -86,6 +89,13 @@ export default function TestPage() {
       try {
         const result = await executeTest(request);
         setLastResult(result);
+        trackEvent("test_completed", {
+          page: "test",
+          test_run_id: result.test_run_id,
+          provider: request.provider,
+          industry: request.industry,
+          is_mentioned: result.is_mentioned,
+        });
         await refreshContext();
       } catch (err) {
         setError(err instanceof Error ? err.message : "测试执行失败");
@@ -124,6 +134,10 @@ export default function TestPage() {
       setProductKeyword(draft.productKeyword);
       setIndustry(draft.industry);
       setProvider(draft.provider);
+    }
+    if (!trackedViewRef.current) {
+      trackEvent("test_page_view", { page: "test" });
+      trackedViewRef.current = true;
     }
     refreshContext();
   }, [refreshContext]);
@@ -173,7 +187,22 @@ export default function TestPage() {
         body: "我们已经记录过您的扩容申请，请先等待顾问联系。为避免重复提交，24 小时内暂不支持再次申请。",
       };
 
+  function handleFormStart() {
+    if (formStartedRef.current) {
+      return;
+    }
+    formStartedRef.current = true;
+    trackEvent("test_form_started", { page: "test" });
+  }
+
   async function handleExecuteTest() {
+    trackEvent("test_execute_click", {
+      page: "test",
+      industry,
+      provider,
+      is_authenticated: isAuthenticated,
+      is_registered: context?.is_registered ?? false,
+    });
     if (!companyName.trim() || !productKeyword.trim()) {
       setError("请填写公司名和产品关键词");
       return;
@@ -187,6 +216,7 @@ export default function TestPage() {
     };
 
     if (!isAuthenticated) {
+      trackEvent("register_modal_open", { page: "test", source: "execute_click", reason: "not_authenticated" });
       setRegisterMode("signup");
       setRegisterOpen(true);
       return;
@@ -199,6 +229,7 @@ export default function TestPage() {
 
     if (!context.is_registered) {
       setError("");
+      trackEvent("register_modal_open", { page: "test", source: "execute_click", reason: "profile_incomplete" });
       pendingRequestRef.current = request;
       setPendingRequest(request);
       setRegisterMode("bootstrap");
@@ -236,6 +267,7 @@ export default function TestPage() {
     if (contactLeadDisabled) {
       return;
     }
+    trackEvent("lead_click", { page: "test", source: "quota_exhausted" });
     setError("");
     setContactLeadStatus("submitting");
     try {
@@ -247,6 +279,7 @@ export default function TestPage() {
       setContactLeadStatus("submitted");
       setContactModalTone("success");
       setContactModalOpen(true);
+      trackEvent("lead_submitted_frontend", { page: "test", source: "quota_exhausted" });
     } catch (err) {
       const message = err instanceof Error ? err.message : "提交失败";
       if (message.includes("24 hours")) {
@@ -325,7 +358,10 @@ export default function TestPage() {
                       placeholder="例如：华为、阿里"
                       type="text"
                       value={companyName}
-                      onChange={(e) => setCompanyName(e.target.value)}
+                      onChange={(e) => {
+                        handleFormStart();
+                        setCompanyName(e.target.value);
+                      }}
                     />
                   </div>
                   <div className="space-y-2 relative z-10">
@@ -333,7 +369,10 @@ export default function TestPage() {
                     <select
                       className="w-full bg-surface-container-lowest border border-outline-variant/50 focus:border-primary focus:ring-1 focus:ring-primary rounded-lg p-4 transition-all appearance-none text-on-surface"
                       value={industry}
-                      onChange={(e) => setIndustry(e.target.value)}
+                      onChange={(e) => {
+                        handleFormStart();
+                        setIndustry(e.target.value);
+                      }}
                     >
                       <option value="医疗健康">医疗健康</option>
                       <option value="电商品牌">电商品牌</option>
@@ -351,7 +390,10 @@ export default function TestPage() {
                     placeholder="输入需要检测的产品关键词，如床垫、电竞椅"
                     type="text"
                     value={productKeyword}
-                    onChange={(e) => setProductKeyword(e.target.value)}
+                    onChange={(e) => {
+                      handleFormStart();
+                      setProductKeyword(e.target.value);
+                    }}
                   />
                   <p className="text-[10px] text-on-surface-variant/60">这些关键词将用于定位和评估大模型的反馈倾向。</p>
                 </div>
@@ -362,7 +404,10 @@ export default function TestPage() {
                     {providers.map((prov) => (
                       <button
                         key={prov.id}
-                        onClick={() => setProvider(prov.id)}
+                        onClick={() => {
+                          handleFormStart();
+                          setProvider(prov.id);
+                        }}
                         type="button"
                         className={`flex flex-col items-center justify-center p-4 rounded-lg border-2 transition-all group ${
                           provider === prov.id

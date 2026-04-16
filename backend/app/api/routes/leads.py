@@ -2,8 +2,9 @@ import json
 from collections.abc import Mapping
 from datetime import datetime, timedelta
 from threading import Thread
+from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException
 from sqlalchemy.orm import Session
 
 from app.core.security import require_jwt_claims
@@ -48,6 +49,7 @@ def _send_and_mark(lead_id: str, db_url: str, **email_kwargs: object) -> None:
 def create_contact_lead(
     payload: ContactLeadRequest,
     claims: Mapping[str, object] = Depends(require_jwt_claims),
+    x_visitor_id: Optional[str] = Header(default=None),
     db: Session = Depends(get_db),
 ):
     auth_id = str(claims.get("sub", "")).strip()
@@ -70,10 +72,16 @@ def create_contact_lead(
     db.add(lead)
     db.commit()
 
-    track_event(db, "lead_submitted", user_id=user.id, properties={
-        "lead_id": lead.id,
-        "company_name": user.company_name,
-    })
+    track_event(
+        db,
+        "lead_submitted",
+        user_id=user.id,
+        visitor_id=x_visitor_id,
+        properties={
+            "lead_id": lead.id,
+            "company_name": user.company_name,
+        },
+    )
 
     Thread(
         target=_send_and_mark,

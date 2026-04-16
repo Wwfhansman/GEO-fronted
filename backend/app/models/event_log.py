@@ -16,5 +16,6 @@ class EventLog(Base):
     id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     event_name: Mapped[str] = mapped_column(String, nullable=False)
     user_id: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    visitor_id: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     properties: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)

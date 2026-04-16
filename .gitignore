@@ -7,4 +7,6 @@ frontend/playwright-report/
 frontend/tsconfig.tsbuildinfo
 *.DS_Store
 backend/.env
+backend/.env.*
 frontend/.env.local
+frontend/.env*.local

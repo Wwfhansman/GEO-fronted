@@ -20,12 +20,14 @@ def track_event(
     event_name: str,
     properties: Optional[Dict[str, Any]] = None,
     user_id: Optional[str] = None,
+    visitor_id: Optional[str] = None,
 ) -> EventLog:
     """Persist an analytics event to the database."""
     props_str = json.dumps(properties, ensure_ascii=False) if properties else None
     event = EventLog(
         event_name=event_name,
         user_id=user_id,
+        visitor_id=visitor_id,
         properties=props_str,
     )
     db.add(event)
