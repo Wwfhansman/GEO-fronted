@@ -19,6 +19,7 @@ import { getAccessToken, getCurrentUserEmail, signOut } from "../../lib/auth";
 import { loadDraft, saveDraft } from "../../lib/draft";
 
 export default function TestPage() {
+  const contactLeadCooldownMs = 24 * 60 * 60 * 1000;
   const [registerOpen, setRegisterOpen] = useState(false);
   const [registerMode, setRegisterMode] = useState<"signup" | "bootstrap">("signup");
   const [bootstrapEmail, setBootstrapEmail] = useState("");
@@ -32,6 +33,10 @@ export default function TestPage() {
   const [lastResult, setLastResult] = useState<ExecuteTestResponse | null>(null);
   const [pendingRequest, setPendingRequest] = useState<ExecuteTestRequest | null>(null);
   const [history, setHistory] = useState<TestRunSummary[]>([]);
+  const [contactLeadStatus, setContactLeadStatus] = useState<"idle" | "submitting" | "submitted" | "rate_limited">("idle");
+  const [contactModalOpen, setContactModalOpen] = useState(false);
+  const [contactModalTone, setContactModalTone] = useState<"success" | "info">("success");
+  const [contactLeadCooldownUntil, setContactLeadCooldownUntil] = useState<number | null>(null);
   const pendingRequestRef = useRef<ExecuteTestRequest | null>(null);
   const executeInFlightRef = useRef(false);
   const bootstrapInFlightRef = useRef(false);
@@ -128,8 +133,45 @@ export default function TestPage() {
     saveDraft({ companyName, productKeyword, industry, provider });
   }, [companyName, productKeyword, industry, provider]);
 
+  useEffect(() => {
+    if (contactLeadCooldownUntil === null) {
+      return;
+    }
+
+    const remaining = contactLeadCooldownUntil - Date.now();
+    if (remaining <= 0) {
+      setContactLeadCooldownUntil(null);
+      setContactLeadStatus((current) =>
+        current === "submitted" || current === "rate_limited" ? "idle" : current
+      );
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      setContactLeadCooldownUntil(null);
+      setContactLeadStatus((current) =>
+        current === "submitted" || current === "rate_limited" ? "idle" : current
+      );
+    }, remaining);
+
+    return () => window.clearTimeout(timer);
+  }, [contactLeadCooldownUntil]);
+
   const freeQuotaRemaining = context?.free_test_quota_remaining ?? 3;
   const showContactSales = isAuthenticated && context?.is_registered && freeQuotaRemaining <= 0;
+  const contactLeadDisabled = contactLeadStatus === "submitting" || contactLeadStatus === "submitted" || contactLeadStatus === "rate_limited";
+
+  const contactModalCopy = contactModalTone === "success"
+    ? {
+        eyebrow: "需求已提交",
+        title: "销售顾问会尽快联系您",
+        body: "您的扩容申请已经提交成功，我们会根据您的检测记录安排顾问跟进，通常会尽快与您联系。",
+      }
+    : {
+        eyebrow: "已收到您的申请",
+        title: "您今天已经提交过一次需求",
+        body: "我们已经记录过您的扩容申请，请先等待顾问联系。为避免重复提交，24 小时内暂不支持再次申请。",
+      };
 
   async function handleExecuteTest() {
     if (!companyName.trim() || !productKeyword.trim()) {
@@ -185,18 +227,37 @@ export default function TestPage() {
     setContext(null);
     setCurrentEmail("");
     setHistory([]);
+    setContactLeadStatus("idle");
+    setContactLeadCooldownUntil(null);
+    setContactModalOpen(false);
   }
 
   async function handleContactSales() {
+    if (contactLeadDisabled) {
+      return;
+    }
     setError("");
+    setContactLeadStatus("submitting");
     try {
       await submitContactLead({
         test_run_id: lastResult?.test_run_id,
         test_summary: { total_query_count: context?.total_query_count },
       });
-      alert("提交成功，我们的销售团队将尽快联系您！");
+      setContactLeadCooldownUntil(Date.now() + contactLeadCooldownMs);
+      setContactLeadStatus("submitted");
+      setContactModalTone("success");
+      setContactModalOpen(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "提交失败");
+      const message = err instanceof Error ? err.message : "提交失败";
+      if (message.includes("24 hours")) {
+        setContactLeadCooldownUntil((current) => current ?? Date.now() + contactLeadCooldownMs);
+        setContactLeadStatus("rate_limited");
+        setContactModalTone("info");
+        setContactModalOpen(true);
+        return;
+      }
+      setContactLeadStatus("idle");
+      setError(message);
     }
   }
 
@@ -337,10 +398,23 @@ export default function TestPage() {
                     <button
                       type="button"
                       onClick={handleContactSales}
-                      className="w-full bg-surface-bright border border-outline-variant font-headline font-extrabold text-xl py-5 rounded-lg hover:bg-surface-container-highest transition-all flex items-center justify-center gap-3"
+                      disabled={contactLeadDisabled}
+                      className={`w-full border font-headline font-extrabold text-xl py-5 rounded-lg transition-all flex items-center justify-center gap-3 ${
+                        contactLeadDisabled
+                          ? "bg-surface-container-high text-on-surface-variant border-outline-variant/40 cursor-not-allowed opacity-60"
+                          : "bg-surface-bright border-outline-variant hover:bg-surface-container-highest"
+                      }`}
                     >
-                      联系销售获取更多测试额度
-                      <span className="material-symbols-outlined">support_agent</span>
+                      {contactLeadStatus === "submitting"
+                        ? "提交中..."
+                        : contactLeadStatus === "submitted"
+                          ? "已提交，等待顾问联系"
+                          : contactLeadStatus === "rate_limited"
+                            ? "24h 内已提交申请"
+                            : "联系销售获取更多测试额度"}
+                      <span className="material-symbols-outlined">
+                        {contactLeadStatus === "submitted" || contactLeadStatus === "rate_limited" ? "check_circle" : "support_agent"}
+                      </span>
                     </button>
                   )}
                 </div>
@@ -491,6 +565,58 @@ export default function TestPage() {
           onClose={() => setRegisterOpen(false)}
           onSuccess={registerMode === "bootstrap" ? handleBootstrapSuccess : refreshContext}
         />
+
+        {contactModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+            <div className="w-full max-w-lg rounded-2xl border border-outline-variant/40 bg-[#09090b] shadow-2xl shadow-black/60 overflow-hidden">
+              <div className="relative p-8">
+                <div className={`absolute top-0 right-0 h-40 w-40 blur-[90px] rounded-full ${
+                  contactModalTone === "success" ? "bg-primary/20" : "bg-surface-bright/30"
+                }`}></div>
+                <div className="relative z-10">
+                  <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border text-xs font-bold uppercase tracking-widest mb-6 ${
+                    contactModalTone === "success"
+                      ? "border-primary/30 bg-primary/10 text-primary"
+                      : "border-outline-variant/40 bg-surface-container-high text-on-surface-variant"
+                  }`}>
+                    <span className="material-symbols-outlined text-[14px]">
+                      {contactModalTone === "success" ? "verified" : "schedule"}
+                    </span>
+                    {contactModalCopy.eyebrow}
+                  </div>
+
+                  <h3 className="text-3xl font-extrabold tracking-tight text-on-surface mb-4">
+                    {contactModalCopy.title}
+                  </h3>
+                  <p className="text-on-surface-variant leading-relaxed mb-8">
+                    {contactModalCopy.body}
+                  </p>
+
+                  <div className="bg-surface-container-low rounded-xl border border-outline-variant/20 p-4 mb-8">
+                    <div className="text-[11px] uppercase tracking-widest text-on-surface-variant font-bold mb-2">
+                      当前状态
+                    </div>
+                    <div className="flex items-center justify-between gap-4 text-sm">
+                      <span className="text-on-surface-variant">销售扩容申请</span>
+                      <span className="text-primary font-bold">
+                        {contactModalTone === "success" ? "已成功提交" : "今日已提交过"}
+                      </span>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setContactModalOpen(false)}
+                    className="w-full bg-primary text-on-primary font-bold py-4 rounded-xl hover:opacity-90 transition-all flex items-center justify-center gap-2"
+                  >
+                    我知道了
+                    <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
 
       <Footer />

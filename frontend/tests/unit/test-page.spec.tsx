@@ -56,6 +56,58 @@ beforeEach(() => {
   });
 });
 
+test("contact sales success opens confirmation modal and disables the button after closing", async () => {
+  mocks.getUserContext.mockResolvedValue({
+    is_registered: true,
+    total_query_count: 3,
+    total_mentioned_count: 0,
+    total_exposure_count: 0,
+    free_test_quota_remaining: 0,
+    overall_evaluation_text: "",
+  });
+  mocks.submitContactLead.mockResolvedValue({ success: true });
+
+  render(<TestPage />);
+
+  const contactButton = await screen.findByRole("button", { name: /联系销售获取更多测试额度/ });
+  fireEvent.click(contactButton);
+
+  await waitFor(() => {
+    expect(mocks.submitContactLead).toHaveBeenCalledTimes(1);
+  });
+  expect(await screen.findByText("销售顾问会尽快联系您")).toBeTruthy();
+
+  fireEvent.click(screen.getByRole("button", { name: /我知道了/ }));
+
+  await waitFor(() => {
+    expect(screen.getByRole("button", { name: /已提交，等待顾问联系/ }).hasAttribute("disabled")).toBe(true);
+  });
+});
+
+test("contact sales rate limit shows modal feedback and disables the button", async () => {
+  mocks.getUserContext.mockResolvedValue({
+    is_registered: true,
+    total_query_count: 3,
+    total_mentioned_count: 0,
+    total_exposure_count: 0,
+    free_test_quota_remaining: 0,
+    overall_evaluation_text: "",
+  });
+  mocks.submitContactLead.mockRejectedValue(new Error("Lead submit is limited to once per 24 hours"));
+
+  render(<TestPage />);
+
+  fireEvent.click(await screen.findByRole("button", { name: /联系销售获取更多测试额度/ }));
+
+  expect(await screen.findByText("您今天已经提交过一次需求")).toBeTruthy();
+
+  fireEvent.click(screen.getByRole("button", { name: /我知道了/ }));
+
+  await waitFor(() => {
+    expect(screen.getByRole("button", { name: /24h 内已提交申请/ }).hasAttribute("disabled")).toBe(true);
+  });
+});
+
 test("authenticated but unregistered users are routed into bootstrap flow", async () => {
   render(<TestPage />);
 
