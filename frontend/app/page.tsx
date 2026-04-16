@@ -3,6 +3,29 @@
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 
+const trendSignals = [
+  {
+    value: "+1200%",
+    label: "生成式 AI 到零售站点流量增长",
+    note: "Adobe Analytics，2024年7月到2025年2月",
+  },
+  {
+    value: "80%",
+    label: "搜索用户会在相当比例查询中依赖 AI 结果",
+    note: "Bain & Company，2025年2月",
+  },
+  {
+    value: "15-25%",
+    label: "自然流量面临被 AI 结果挤压的区间",
+    note: "Bain & Company，2025年2月",
+  },
+];
+
+const trendLines = {
+  traditional: "M32 126 C96 118, 146 110, 200 102 C252 95, 312 88, 372 82 C430 77, 486 72, 548 68",
+  ai: "M32 144 C94 142, 146 136, 200 126 C252 114, 306 98, 372 78 C432 60, 488 42, 548 24",
+};
+
 const faqsData = [
   {
     q: "免费测试主要测什么？",
@@ -190,6 +213,180 @@ export default function LandingPage() {
             >
               了解工作原理
             </Link>
+          </div>
+        </section>
+
+        {/* Trend Signal Module */}
+        <section className="relative z-10 max-w-screen-2xl mx-auto px-8 pb-28">
+          <div className="rounded-[28px] border border-outline-variant/20 bg-surface-container-low/70 backdrop-blur-sm overflow-hidden shadow-[0_30px_80px_rgba(0,0,0,0.25)]">
+            <div className="grid grid-cols-1 xl:grid-cols-12 gap-0 items-stretch">
+              <div className="xl:col-span-4 p-8 md:p-10 xl:p-10 border-b xl:border-b-0 xl:border-r border-outline-variant/20 flex">
+                <div className="w-full flex flex-col justify-center max-w-[440px]">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-primary/20 bg-primary/5 text-primary text-[11px] font-bold uppercase tracking-[0.22em] mb-6">
+                  流量迁移信号
+                </div>
+                <h2 className="text-3xl md:text-[2.45rem] font-extrabold tracking-tighter text-on-surface mb-4 leading-[1.05]">
+                  搜索结果页之外，
+                  <br />
+                  模型答案页正在成为新入口
+                </h2>
+                <p className="text-on-surface-variant text-[15px] leading-relaxed max-w-md mb-7">
+                  用户越来越少翻十页链接，而是直接向 ChatGPT、豆包、DeepSeek 这类产品提问。品牌的第一触点，正在从关键词检索页迁移到生成式答案页。
+                </p>
+
+                <div className="space-y-3">
+                  {trendSignals.map((signal) => (
+                    <div
+                      key={signal.label}
+                      className="rounded-2xl border border-outline-variant/15 bg-[#0f0f12] px-5 py-4"
+                    >
+                      <div className="flex items-center justify-between gap-4 mb-2">
+                        <div className="text-[2rem] md:text-[2.1rem] leading-none font-extrabold tracking-tight text-primary">{signal.value}</div>
+                        <span className="material-symbols-outlined text-on-surface-variant/35 text-[16px]">north_east</span>
+                      </div>
+                      <div className="text-[14px] font-semibold text-on-surface leading-snug">{signal.label}</div>
+                      <div className="text-[10px] uppercase tracking-[0.16em] text-on-surface-variant mt-2">
+                        {signal.note}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              </div>
+
+              <div className="xl:col-span-8 p-8 md:p-10 xl:p-10 relative bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.08),transparent_35%),linear-gradient(180deg,rgba(255,255,255,0.02),transparent)] flex">
+                <div className="absolute inset-0 bg-[linear-gradient(to_right,#3f3f4610_1px,transparent_1px),linear-gradient(to_bottom,#3f3f4610_1px,transparent_1px)] bg-[size:44px_44px] opacity-20 pointer-events-none"></div>
+                <div className="relative z-10 w-full flex flex-col justify-center">
+                  <div className="flex items-center justify-between gap-4 mb-8">
+                    <div>
+                      <div className="text-[11px] uppercase tracking-[0.22em] text-primary font-bold mb-2">Indexed Trend</div>
+                      <h3 className="text-2xl font-extrabold tracking-tight text-on-surface">品牌获取曝光的主战场，正在发生迁移</h3>
+                    </div>
+                    <div className="hidden md:flex items-center gap-5 text-[11px] uppercase tracking-[0.18em] text-on-surface-variant">
+                      <div className="flex items-center gap-2">
+                        <span className="w-8 h-[2px] bg-outline-variant/70"></span>
+                        传统搜索可见性
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="w-8 h-[2px] bg-primary"></span>
+                        AI 推荐可见性
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border border-outline-variant/15 bg-[#09090b]/90 p-5 md:p-6">
+                    <svg viewBox="0 0 580 170" className="w-full h-auto" role="img" aria-label="传统搜索与 AI 推荐可见性趋势图">
+                      <defs>
+                        <linearGradient id="aiLineGlow" x1="0%" y1="0%" x2="100%" y2="0%">
+                          <stop offset="0%" stopColor="rgba(255,255,255,0.35)" />
+                          <stop offset="100%" stopColor="rgba(255,255,255,1)" />
+                        </linearGradient>
+                        <linearGradient id="areaFade" x1="0%" y1="0%" x2="0%" y2="100%">
+                          <stop offset="0%" stopColor="rgba(255,255,255,0.14)" />
+                          <stop offset="100%" stopColor="rgba(255,255,255,0)" />
+                        </linearGradient>
+                      </defs>
+
+                      {[26, 58, 90, 122].map((y) => (
+                        <line key={y} x1="24" y1={y} x2="552" y2={y} stroke="rgba(161,161,170,0.18)" strokeWidth="1" strokeDasharray="5 7" />
+                      ))}
+
+                      <path d={`${trendLines.ai} L548 150 L32 150 Z`} fill="url(#areaFade)" />
+                      <path d={trendLines.traditional} fill="none" stroke="rgba(161,161,170,0.9)" strokeWidth="3" strokeLinecap="round" />
+                      <path d={trendLines.ai} fill="none" stroke="url(#aiLineGlow)" strokeWidth="4" strokeLinecap="round" />
+
+                      {[
+                        { x: 32, y: 144, year: "2022" },
+                        { x: 160, y: 132, year: "2023" },
+                        { x: 288, y: 104, year: "2024" },
+                        { x: 416, y: 62, year: "2025" },
+                        { x: 548, y: 24, year: "2026" },
+                      ].map((point) => (
+                        <g key={point.year}>
+                          <circle cx={point.x} cy={point.y} r="5" fill="#09090b" stroke="white" strokeWidth="2" />
+                          <text x={point.x} y="164" textAnchor="middle" fill="rgba(161,161,170,0.85)" fontSize="11" letterSpacing="0.18em">
+                            {point.year}
+                          </text>
+                        </g>
+                      ))}
+
+                      <g>
+                        <line x1="350" y1="24" x2="350" y2="146" stroke="rgba(255,255,255,0.2)" strokeDasharray="4 6" />
+                        <rect x="286" y="14" width="128" height="24" rx="12" fill="rgba(255,255,255,0.07)" stroke="rgba(255,255,255,0.14)" />
+                        <text x="350" y="30" textAnchor="middle" fill="rgba(250,250,250,0.86)" fontSize="10" letterSpacing="0.08em">
+                          ChatGPT Search 上线
+                        </text>
+                      </g>
+
+                      <g>
+                        <line x1="468" y1="18" x2="468" y2="126" stroke="rgba(255,255,255,0.22)" strokeDasharray="4 6" />
+                        <rect x="413" y="8" width="110" height="24" rx="12" fill="rgba(255,255,255,0.07)" stroke="rgba(255,255,255,0.14)" />
+                        <text x="468" y="24" textAnchor="middle" fill="rgba(250,250,250,0.86)" fontSize="10" letterSpacing="0.08em">
+                          AI 搜索进入普及期
+                        </text>
+                      </g>
+                    </svg>
+                  </div>
+
+                  <div className="mt-5 rounded-2xl border border-outline-variant/15 bg-black/20 px-5 py-5">
+                    <div className="flex items-center justify-between gap-4 mb-4">
+                      <div>
+                        <div className="text-[10px] uppercase tracking-[0.18em] text-on-surface-variant mb-2">Traffic Mix Shift</div>
+                        <div className="text-sm font-semibold text-on-surface">用户发现品牌的入口结构，正在重新分配</div>
+                      </div>
+                      <div className="hidden md:flex items-center gap-4 text-[10px] uppercase tracking-[0.16em] text-on-surface-variant">
+                        <div className="flex items-center gap-2">
+                          <span className="w-3 h-3 rounded-sm bg-outline-variant/70"></span>
+                          传统搜索
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="w-3 h-3 rounded-sm bg-primary"></span>
+                          AI 发现入口
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-4">
+                      {[
+                        { year: "2023", search: 86, ai: 14 },
+                        { year: "2024", search: 72, ai: 28 },
+                        { year: "2025", search: 54, ai: 46 },
+                      ].map((item) => (
+                        <div key={item.year} className="grid grid-cols-[52px_1fr_48px] items-center gap-4">
+                          <div className="text-[11px] uppercase tracking-[0.18em] text-on-surface-variant">{item.year}</div>
+                          <div className="h-3 rounded-full bg-surface-container-highest overflow-hidden flex">
+                            <div
+                              className="h-full bg-outline-variant/75"
+                              style={{ width: `${item.search}%`, transition: "width 600ms ease" }}
+                            ></div>
+                            <div
+                              className="h-full bg-primary shadow-[0_0_16px_rgba(255,255,255,0.16)]"
+                              style={{ width: `${item.ai}%`, transition: "width 600ms ease" }}
+                            ></div>
+                          </div>
+                          <div className="text-right text-xs font-semibold text-on-surface">{item.ai}%</div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-5">
+                      <div className="rounded-xl border border-outline-variant/10 bg-surface-container-low/40 px-4 py-3">
+                        <div className="text-[10px] uppercase tracking-[0.16em] text-on-surface-variant mb-1">Signal</div>
+                        <div className="text-sm text-on-surface">用户越来越少逐条点击链接。</div>
+                      </div>
+                      <div className="rounded-xl border border-outline-variant/10 bg-surface-container-low/40 px-4 py-3">
+                        <div className="text-[10px] uppercase tracking-[0.16em] text-on-surface-variant mb-1">Shift</div>
+                        <div className="text-sm text-on-surface">模型开始直接给出候选答案。</div>
+                      </div>
+                      <div className="rounded-xl border border-outline-variant/10 bg-surface-container-low/40 px-4 py-3">
+                        <div className="text-[10px] uppercase tracking-[0.16em] text-on-surface-variant mb-1">Result</div>
+                        <div className="text-sm text-on-surface">品牌被提及，开始决定首轮认知。</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </section>
 
