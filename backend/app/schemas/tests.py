@@ -8,6 +8,7 @@ class ExecuteTestRequest(BaseModel):
     product_keyword: str
     industry: str
     provider: str
+    language: str = "zh"
 
 
 class ExecuteTestResponse(BaseModel):

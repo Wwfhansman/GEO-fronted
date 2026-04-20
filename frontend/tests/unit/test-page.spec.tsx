@@ -69,18 +69,18 @@ test("contact sales success opens confirmation modal and disables the button aft
 
   render(<TestPage />);
 
-  const contactButton = await screen.findByRole("button", { name: /联系销售获取更多测试额度/ });
+  const contactButton = await screen.findByRole("button", { name: /Contact sales for more quota/ });
   fireEvent.click(contactButton);
 
   await waitFor(() => {
     expect(mocks.submitContactLead).toHaveBeenCalledTimes(1);
   });
-  expect(await screen.findByText("销售顾问会尽快联系您")).toBeTruthy();
+  expect(await screen.findByText("A sales advisor will contact you soon")).toBeTruthy();
 
-  fireEvent.click(screen.getByRole("button", { name: /我知道了/ }));
+  fireEvent.click(screen.getByRole("button", { name: /Got it/ }));
 
   await waitFor(() => {
-    expect(screen.getByRole("button", { name: /已提交，等待顾问联系/ }).hasAttribute("disabled")).toBe(true);
+    expect(screen.getByRole("button", { name: /Submitted, waiting for advisor/ }).hasAttribute("disabled")).toBe(true);
   });
 });
 
@@ -97,14 +97,14 @@ test("contact sales rate limit shows modal feedback and disables the button", as
 
   render(<TestPage />);
 
-  fireEvent.click(await screen.findByRole("button", { name: /联系销售获取更多测试额度/ }));
+  fireEvent.click(await screen.findByRole("button", { name: /Contact sales for more quota/ }));
 
-  expect(await screen.findByText("您今天已经提交过一次需求")).toBeTruthy();
+  expect(await screen.findByText("You already submitted once today")).toBeTruthy();
 
-  fireEvent.click(screen.getByRole("button", { name: /我知道了/ }));
+  fireEvent.click(screen.getByRole("button", { name: /Got it/ }));
 
   await waitFor(() => {
-    expect(screen.getByRole("button", { name: /24h 内已提交申请/ }).hasAttribute("disabled")).toBe(true);
+    expect(screen.getByRole("button", { name: /Already submitted within 24h/ }).hasAttribute("disabled")).toBe(true);
   });
 });
 
@@ -116,14 +116,16 @@ test("authenticated but unregistered users are routed into bootstrap flow", asyn
     expect(mocks.getUserContext).toHaveBeenCalled();
   });
 
-  fireEvent.change(screen.getByPlaceholderText("例如：华为、阿里"), {
+  fireEvent.change(screen.getByPlaceholderText("e.g. Huawei, Alibaba"), {
     target: { value: "Acme" },
   });
-  fireEvent.change(screen.getByPlaceholderText("输入需要检测的产品关键词，如床垫、电竞椅"), {
+  fireEvent.change(screen.getByPlaceholderText("Enter the keyword to audit, such as mattress or gaming chair"), {
     target: { value: "云服务器" },
   });
 
-  fireEvent.click(screen.getByRole("button", { name: /评估 AI 曝光度/ }));
+  expect(screen.queryByText("Latest audit result")).toBeNull();
+
+  fireEvent.click(screen.getByRole("button", { name: /Run AI visibility audit/ }));
 
   await waitFor(() => {
     expect(mocks.registerModal.mock.calls.at(-1)?.[0]).toMatchObject({
@@ -153,14 +155,14 @@ test("bootstrap success only executes the pending test once", async () => {
     expect(mocks.getUserContext).toHaveBeenCalled();
   });
 
-  fireEvent.change(screen.getByPlaceholderText("例如：华为、阿里"), {
+  fireEvent.change(screen.getByPlaceholderText("e.g. Huawei, Alibaba"), {
     target: { value: "Acme" },
   });
-  fireEvent.change(screen.getByPlaceholderText("输入需要检测的产品关键词，如床垫、电竞椅"), {
+  fireEvent.change(screen.getByPlaceholderText("Enter the keyword to audit, such as mattress or gaming chair"), {
     target: { value: "云服务器" },
   });
 
-  fireEvent.click(screen.getByRole("button", { name: /评估 AI 曝光度/ }));
+  fireEvent.click(screen.getByRole("button", { name: /Run AI visibility audit/ }));
 
   await waitFor(() => {
     expect(mocks.registerModal.mock.calls.at(-1)?.[0]).toMatchObject({

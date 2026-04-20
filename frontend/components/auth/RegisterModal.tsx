@@ -4,6 +4,7 @@ import React, { useRef, useState } from "react";
 
 import { bootstrapUser } from "../../lib/api";
 import { PendingBootstrapProfile, signInWithEmail, signUpWithEmail } from "../../lib/auth";
+import { useLanguage } from "../providers/LanguageProvider";
 
 type RegisterModalProps = {
   open: boolean;
@@ -24,6 +25,7 @@ export function RegisterModal({
   bootstrapPhone = "",
   bootstrapCompany = "",
 }: RegisterModalProps) {
+  const { language } = useLanguage();
   const [tab, setTab] = useState<"signup" | "login">("signup");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -41,10 +43,14 @@ export function RegisterModal({
   function mapAuthError(message: string) {
     const normalized = message.toLowerCase();
     if (normalized.includes("email rate limit exceeded")) {
-      return "当前环境仍在触发邮箱验证发信，请关闭 Supabase 的邮箱确认后再试。";
+      return language === "zh"
+        ? "当前环境仍在触发邮箱验证发信，请关闭 Supabase 的邮箱确认后再试。"
+        : "Email confirmation is still being triggered in this environment. Please disable Supabase email confirmation and try again.";
     }
     if (normalized.includes("email not confirmed")) {
-      return "本项目当前仍在要求邮箱验证，请先在 Supabase Auth 设置里关闭邮箱确认。";
+      return language === "zh"
+        ? "本项目当前仍在要求邮箱验证，请先在 Supabase Auth 设置里关闭邮箱确认。"
+        : "This project is still requiring email confirmation. Please disable Confirm email in Supabase Auth first.";
     }
     return message;
   }
@@ -67,7 +73,7 @@ export function RegisterModal({
         const phone = ((form.get("phone") as string) || "").trim();
         const companyName = ((form.get("companyName") as string) || "").trim();
         if (!email || !phone || !companyName) {
-          setError("请填写邮箱、手机号和公司名");
+          setError(language === "zh" ? "请填写邮箱、手机号和公司名" : "Please complete email, phone, and company name.");
           return;
         }
         await bootstrapUser({ email, phone, company_name: companyName });
@@ -81,13 +87,13 @@ export function RegisterModal({
         const email = ((form.get("email") as string) || "").trim();
         const password = ((form.get("password") as string) || "").trim();
         if (!email || !password) {
-          setError("请填写邮箱和密码");
+          setError(language === "zh" ? "请填写邮箱和密码" : "Please enter both email and password.");
           return;
         }
         const { error: authError } = await signInWithEmail(email, password);
         if (authError) {
           setError(authError.message === "Invalid login credentials"
-            ? "邮箱或密码不正确"
+            ? (language === "zh" ? "邮箱或密码不正确" : "Incorrect email or password.")
             : mapAuthError(authError.message));
           return;
         }
@@ -101,7 +107,7 @@ export function RegisterModal({
       const phone = ((form.get("phone") as string) || "").trim();
       const companyName = ((form.get("companyName") as string) || "").trim();
       if (!email || !password || !phone || !companyName) {
-        setError("请填写所有必填项");
+        setError(language === "zh" ? "请填写所有必填项" : "Please complete all required fields.");
         return;
       }
 
@@ -113,7 +119,11 @@ export function RegisterModal({
       }
 
       if (!data.session) {
-        setError("注册后没有拿到登录态。当前项目大概率仍开启了邮箱验证，请先关闭 Supabase 的 Confirm email。");
+        setError(
+          language === "zh"
+            ? "注册后没有拿到登录态。当前项目大概率仍开启了邮箱验证，请先关闭 Supabase 的 Confirm email。"
+            : "No active session was returned after sign up. Supabase Confirm email is likely still enabled. Please disable it first.",
+        );
         return;
       }
 
@@ -121,7 +131,7 @@ export function RegisterModal({
       await onSuccess?.();
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "操作失败，请重试");
+      setError(err instanceof Error ? err.message : (language === "zh" ? "操作失败，请重试" : "Action failed. Please try again."));
     } finally {
       submitLockedRef.current = false;
       setLoading(false);
@@ -138,10 +148,12 @@ export function RegisterModal({
         <div className="flex justify-between items-center p-6 border-b border-outline-variant/30 bg-surface-container-highest/20">
           <div>
             <h2 className="text-xl font-bold font-headline">
-              {isBootstrap ? "补充注册信息" : "账户登录与注册"}
+              {isBootstrap ? (language === "zh" ? "补充注册信息" : "Complete registration details") : (language === "zh" ? "账户登录与注册" : "Log in or create account")}
             </h2>
             <p className="text-xs text-on-surface-variant mt-1">
-              {isBootstrap ? "完成手机号和公司信息补录，继续检测" : "加入 GiuGEO 体验完整智库分析"}
+              {isBootstrap
+                ? (language === "zh" ? "完成手机号和公司信息补录，继续检测" : "Add phone and company details to continue the audit")
+                : (language === "zh" ? "加入 GiuGEO 体验完整智库分析" : "Join GiuGEO for the full intelligence workflow")}
             </p>
           </div>
           <button
@@ -166,7 +178,7 @@ export function RegisterModal({
                       : "text-on-surface-variant hover:text-on-surface"
                     }`}
                 >
-                  {t === "signup" ? "注册新账号" : "密码登录"}
+                  {t === "signup" ? (language === "zh" ? "注册新账号" : "Create account") : (language === "zh" ? "密码登录" : "Password login")}
                 </button>
               ))}
             </div>
@@ -175,7 +187,7 @@ export function RegisterModal({
           <form className="space-y-4" onSubmit={handleSubmit}>
             {isBootstrap ? (
               <div className="space-y-1">
-                <label className="text-xs font-bold uppercase tracking-widest text-on-surface-variant">邮箱</label>
+                <label className="text-xs font-bold uppercase tracking-widest text-on-surface-variant">{language === "zh" ? "邮箱" : "Email"}</label>
                 <input
                   type="email"
                   name="email"
@@ -187,7 +199,7 @@ export function RegisterModal({
               </div>
             ) : (
               <div className="space-y-1">
-                <label className="text-xs font-bold uppercase tracking-widest text-on-surface-variant">邮箱</label>
+                <label className="text-xs font-bold uppercase tracking-widest text-on-surface-variant">{language === "zh" ? "邮箱" : "Email"}</label>
                 <input
                   type="email"
                   name="email"
@@ -199,7 +211,7 @@ export function RegisterModal({
 
             {!isBootstrap && (
               <div className="space-y-1">
-                <label className="text-xs font-bold uppercase tracking-widest text-on-surface-variant">密码</label>
+                <label className="text-xs font-bold uppercase tracking-widest text-on-surface-variant">{language === "zh" ? "密码" : "Password"}</label>
                 <input
                   type="password"
                   name="password"
@@ -213,7 +225,7 @@ export function RegisterModal({
             {(isBootstrap || tab === "signup") && (
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
-                  <label className="text-xs font-bold uppercase tracking-widest text-on-surface-variant">手机号</label>
+                  <label className="text-xs font-bold uppercase tracking-widest text-on-surface-variant">{language === "zh" ? "手机号" : "Phone"}</label>
                   <input
                     type="tel"
                     name="phone"
@@ -223,7 +235,7 @@ export function RegisterModal({
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-bold uppercase tracking-widest text-on-surface-variant">公司名</label>
+                  <label className="text-xs font-bold uppercase tracking-widest text-on-surface-variant">{language === "zh" ? "公司名" : "Company"}</label>
                   <input
                     type="text"
                     name="companyName"
@@ -246,12 +258,12 @@ export function RegisterModal({
               >
                 {loading && <span className="material-symbols-outlined text-[20px] animate-spin">refresh</span>}
                 {loading
-                  ? "处理中..."
+                  ? (language === "zh" ? "处理中..." : "Processing...")
                   : isBootstrap
-                    ? "完成补录"
+                    ? (language === "zh" ? "完成补录" : "Finish setup")
                     : tab === "login"
-                      ? "立即登录"
-                      : "立即注册"}
+                      ? (language === "zh" ? "立即登录" : "Log in")
+                      : (language === "zh" ? "立即注册" : "Create account")}
               </button>
             </div>
           </form>

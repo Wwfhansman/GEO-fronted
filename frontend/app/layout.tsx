@@ -1,16 +1,22 @@
 import React from "react";
+import { cookies } from "next/headers";
 import "./globals.css";
+import { LanguageProvider } from "../components/providers/LanguageProvider";
+import { LANGUAGE_COOKIE_KEY, normalizeLanguage } from "../lib/i18n";
 
 export const metadata = {
   title: "GiuGEO",
-  description: "检测您的品牌在AI大模型中的曝光情况",
+  description: "Measure and improve how your brand shows up across AI answers.",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const cookieStore = await cookies();
+  const initialLanguage = normalizeLanguage(cookieStore.get(LANGUAGE_COOKIE_KEY)?.value);
+
   return (
-    <html lang="zh-CN" className="dark">
+    <html lang={initialLanguage === "zh" ? "zh-CN" : "en"} className="dark">
       <body className="bg-surface text-on-surface font-body antialiased">
-        {children}
+        <LanguageProvider initialLanguage={initialLanguage}>{children}</LanguageProvider>
       </body>
     </html>
   );

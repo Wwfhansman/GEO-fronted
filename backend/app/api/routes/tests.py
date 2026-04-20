@@ -51,6 +51,7 @@ def execute_test(
     prompt_info = build_prompt_with_default_template(
         industry=payload.industry,
         product_keyword=payload.product_keyword,
+        language=payload.language,
     )
     adapter = get_provider_adapter(payload.provider, settings.openai_api_key)
     try:

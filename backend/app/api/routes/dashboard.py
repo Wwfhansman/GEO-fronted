@@ -1,4 +1,5 @@
 import json
+from typing import Optional
 
 from fastapi import APIRouter, Depends
 from sqlalchemy import func
@@ -83,21 +84,32 @@ def _build_traffic_metrics(events: list[EventLog]) -> dict:
         counts_by_name[event.event_name] = counts_by_name.get(event.event_name, 0) + 1
         unique_by_name.setdefault(event.event_name, set()).add(_actor_key(event, alias_to_actor))
 
+    def actor_set(event_name: str) -> set[str]:
+        return unique_by_name.get(event_name, set())
+
+    def transition_rate(previous: set[str], current: set[str]) -> Optional[float]:
+        if not previous:
+            return None
+        progressed = len(previous & current)
+        return round((progressed / len(previous)) * 100, 1)
+
     funnel = []
-    previous_count = None
-    start_count = None
+    previous_actors: Optional[set[str]] = None
+    start_actors: Optional[set[str]] = None
     for event_name, label in TRAFFIC_FUNNEL_STEPS:
-        unique_count = len(unique_by_name.get(event_name, set()))
-        if start_count is None:
-            start_count = unique_count
+        current_actors = actor_set(event_name)
+        unique_count = len(current_actors)
+        if start_actors is None:
+            start_actors = current_actors
+
         conversion_from_previous = (
-            round((unique_count / previous_count) * 100, 1)
-            if previous_count and previous_count > 0
+            transition_rate(previous_actors, current_actors)
+            if previous_actors is not None
             else None
         )
         conversion_from_start = (
-            round((unique_count / start_count) * 100, 1)
-            if start_count and start_count > 0
+            transition_rate(start_actors, current_actors)
+            if start_actors is not None
             else None
         )
         funnel.append(
@@ -109,37 +121,39 @@ def _build_traffic_metrics(events: list[EventLog]) -> dict:
                 "conversion_from_start": conversion_from_start,
             }
         )
-        previous_count = unique_count
+        previous_actors = current_actors
 
-    landing_views = len(unique_by_name.get("landing_view", set()))
-    landing_cta_clicks = len(unique_by_name.get("landing_primary_cta_click", set()))
-    test_page_views = len(unique_by_name.get("test_page_view", set()))
-    test_executions = len(unique_by_name.get("test_executed", set()))
-    lead_submitted = len(unique_by_name.get("lead_submitted", set()))
+    landing_view_actors = actor_set("landing_view")
+    landing_cta_actors = actor_set("landing_primary_cta_click")
+    test_page_actors = actor_set("test_page_view")
+    test_execution_actors = actor_set("test_executed")
+    lead_submitted_actors = actor_set("lead_submitted")
+    result_view_actors = actor_set("result_page_view")
 
-    result_views = len(unique_by_name.get("result_page_view", set()))
     max_dropoff = None
     if len(funnel) > 1:
         deltas = []
         for prev, current in zip(funnel, funnel[1:]):
+            previous_step_actors = actor_set(prev["event_name"])
+            current_step_actors = actor_set(current["event_name"])
             deltas.append(
                 {
                     "from": prev["label"],
                     "to": current["label"],
-                    "dropoff": max(prev["count"] - current["count"], 0),
+                    "dropoff": len(previous_step_actors - current_step_actors),
                 }
             )
         max_dropoff = max(deltas, key=lambda item: item["dropoff"]) if deltas else None
 
     return {
         "traffic_summary": {
-            "landing_views": landing_views,
-            "test_page_views": test_page_views,
-            "result_page_views": result_views,
-            "landing_to_test_rate": round((test_page_views / landing_views) * 100, 1) if landing_views else 0.0,
-            "landing_cta_rate": round((landing_cta_clicks / landing_views) * 100, 1) if landing_views else 0.0,
-            "test_completion_rate": round((test_executions / test_page_views) * 100, 1) if test_page_views else 0.0,
-            "lead_submission_rate": round((lead_submitted / test_executions) * 100, 1) if test_executions else 0.0,
+            "landing_views": len(landing_view_actors),
+            "test_page_views": len(test_page_actors),
+            "result_page_views": len(result_view_actors),
+            "landing_to_test_rate": transition_rate(landing_view_actors, test_page_actors) or 0.0,
+            "landing_cta_rate": transition_rate(landing_view_actors, landing_cta_actors) or 0.0,
+            "test_completion_rate": transition_rate(test_page_actors, test_execution_actors) or 0.0,
+            "lead_submission_rate": transition_rate(test_execution_actors, lead_submitted_actors) or 0.0,
         },
         "traffic_funnel": funnel,
         "traffic_diagnosis": {

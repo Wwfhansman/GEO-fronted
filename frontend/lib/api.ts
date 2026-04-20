@@ -76,6 +76,7 @@ export interface ExecuteTestRequest {
   product_keyword: string;
   industry: string;
   provider: string;
+  language?: "en" | "zh";
 }
 
 export interface ExecuteTestResponse {

@@ -1,10 +1,13 @@
+"use client";
+
 import React from "react";
 import { Header } from "../layout/Header";
 import { Footer } from "../layout/Footer";
+import { useLanguage } from "../providers/LanguageProvider";
 
 type InfoSection = {
   title: string;
-  paragraphs: string[];
+  paragraphs: readonly string[];
 };
 
 type InfoPageLayoutProps = {
@@ -12,7 +15,7 @@ type InfoPageLayoutProps = {
   title: string;
   description: string;
   updatedAt: string;
-  sections: InfoSection[];
+  sections: readonly InfoSection[];
 };
 
 export function InfoPageLayout({
@@ -22,6 +25,8 @@ export function InfoPageLayout({
   updatedAt,
   sections,
 }: InfoPageLayoutProps) {
+  const { language } = useLanguage();
+
   return (
     <div className="flex min-h-screen flex-col">
       <Header isAuthenticated={false} currentEmail="" activePath="" />
@@ -44,7 +49,7 @@ export function InfoPageLayout({
             </p>
             <div className="mt-6 inline-flex items-center gap-2 rounded-full border border-outline-variant/30 bg-[#09090b] px-3 py-1 text-[11px] uppercase tracking-widest text-on-surface-variant">
               <span className="material-symbols-outlined text-[14px]">schedule</span>
-              最近更新：{updatedAt}
+              {language === "zh" ? "最近更新：" : "Last updated:"} {updatedAt}
             </div>
           </div>
 

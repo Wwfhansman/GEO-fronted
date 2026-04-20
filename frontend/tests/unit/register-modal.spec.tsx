@@ -51,11 +51,11 @@ test("signup without session shows config guidance and skips bootstrap", async (
     target: { value: "Acme" },
   });
 
-  fireEvent.click(screen.getByRole("button", { name: "立即注册" }));
+  fireEvent.click(screen.getAllByRole("button", { name: "Create account" }).at(-1)!);
 
   await waitFor(() =>
     expect(
-      screen.getByText("注册后没有拿到登录态。当前项目大概率仍开启了邮箱验证，请先关闭 Supabase 的 Confirm email。")
+      screen.getByText("No active session was returned after sign up. Supabase Confirm email is likely still enabled. Please disable it first.")
     ).toBeTruthy()
   );
   expect(mocks.signUpWithEmail).toHaveBeenCalledWith(

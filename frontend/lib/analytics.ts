@@ -1,3 +1,5 @@
+import { getAccessToken, getCachedAccessToken } from "./auth";
+
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
 const VISITOR_KEY = "geo-visitor-id";
 
@@ -37,26 +39,60 @@ export function trackEvent(
     }
     try {
       const endpoint = `${API_BASE}/api/analytics/track`;
-      const payload = JSON.stringify({
+      const payload = {
         event: eventName,
         properties,
         visitor_id: getVisitorId(),
         timestamp: new Date().toISOString(),
-      });
+      };
+      const serialized = JSON.stringify(payload);
+      const cachedToken = getCachedAccessToken();
 
+      // Prefer an authenticated keepalive fetch when a token is already available in memory.
+      if (cachedToken) {
+        void fetch(endpoint, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${cachedToken}`,
+          },
+          body: serialized,
+          keepalive: true,
+        }).catch(() => undefined);
+        return { eventName, properties };
+      }
+
+      // Preserve the synchronous beacon path when we cannot synchronously attach auth.
       if (navigator.sendBeacon) {
         navigator.sendBeacon(
           endpoint,
-          new Blob([payload], { type: "application/json" }),
+          new Blob([serialized], { type: "application/json" }),
         );
-      } else {
-        void fetch(endpoint, {
+        return { eventName, properties };
+      }
+
+      void (async () => {
+        const token = await getAccessToken().catch(() => null);
+        if (token) {
+          await fetch(endpoint, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: serialized,
+            keepalive: true,
+          }).catch(() => undefined);
+          return;
+        }
+
+        await fetch(endpoint, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: payload,
+          body: serialized,
           keepalive: true,
-        });
-      }
+        }).catch(() => undefined);
+      })();
     } catch {
       // Silently ignore analytics failures
     }

@@ -80,7 +80,7 @@ def _provider_model_name(provider: str) -> str:
         return settings.deepseek_model
     if normalized == "豆包":
         return settings.doubao_model
-    if normalized == "通义":
+    if normalized in {"通义", "千问"}:
         return settings.tongyi_model
     raise ValueError(f"Unsupported provider: {provider}")
 
