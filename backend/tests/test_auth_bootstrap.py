@@ -1,7 +1,9 @@
 from fastapi.testclient import TestClient
 
 from app.core.config import settings
+from app.db.session import get_db
 from app.main import app
+from app.models import User
 
 
 def test_bootstrap_user_route_exists():
@@ -49,6 +51,33 @@ def test_bootstrap_user_updates_existing_user_by_auth_id(auth_token):
     assert first.json()["user_id"] == second.json()["user_id"]
     assert second.json()["phone"] == "222"
     assert second.json()["company_name"] == "New Co"
+
+
+def test_bootstrap_user_does_not_downgrade_email_verified(auth_token):
+    client = TestClient(app)
+    verified_token = auth_token(email="verified@example.com", sub="auth-v", email_verified=True)
+    initial = client.post(
+        "/api/auth/bootstrap",
+        headers={"Authorization": f"Bearer {verified_token}"},
+        json={"email": "ignored@example.com", "phone": "111", "company_name": "Verified Co"},
+    )
+    stale_token = auth_token(email="verified@example.com", sub="auth-v", email_verified=False)
+    second = client.post(
+        "/api/auth/bootstrap",
+        headers={"Authorization": f"Bearer {stale_token}"},
+        json={"email": "ignored@example.com", "phone": "222", "company_name": "Verified Co"},
+    )
+
+    assert initial.status_code == 200
+    assert second.status_code == 200
+    assert second.json()["email"] == "verified@example.com"
+
+    db = next(get_db())
+    try:
+        user = db.query(User).filter(User.email == "verified@example.com").one()
+        assert user.email_verified is True
+    finally:
+        db.close()
 
 
 def test_bootstrap_user_rejects_invalid_jwt():

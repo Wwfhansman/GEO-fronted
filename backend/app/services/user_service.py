@@ -53,7 +53,11 @@ def upsert_bootstrap_user(
         user.phone = payload.phone
         user.company_name = payload.company_name
 
-    user.email_verified = _claim_bool(claims, "email_verified", "email_confirmed_at")
+    claim_email_verified = _claim_bool(claims, "email_verified", "email_confirmed_at")
+    if claim_email_verified or user.email_verified:
+        user.email_verified = True
+    else:
+        user.email_verified = False
 
     metrics = session.get(UserTestMetrics, user.id)
     if metrics is None:

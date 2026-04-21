@@ -21,7 +21,7 @@ beforeEach(() => {
   vi.clearAllMocks();
 });
 
-test("signup without session asks user to verify email and skips bootstrap", async () => {
+test("signup only requires email and password before email verification", async () => {
   mocks.signUpWithEmail.mockResolvedValue({
     data: { session: null },
     error: null,
@@ -35,20 +35,14 @@ test("signup without session asks user to verify email and skips bootstrap", asy
 
   expect(emailInput).toBeTruthy();
   expect(passwordInput).toBeTruthy();
-  expect(phoneInput).toBeTruthy();
-  expect(companyInput).toBeTruthy();
+  expect(phoneInput).toBeFalsy();
+  expect(companyInput).toBeFalsy();
 
   fireEvent.change(emailInput!, {
     target: { value: "user@example.com" },
   });
   fireEvent.change(passwordInput!, {
     target: { value: "password123" },
-  });
-  fireEvent.change(phoneInput!, {
-    target: { value: "13800000000" },
-  });
-  fireEvent.change(companyInput!, {
-    target: { value: "Acme" },
   });
 
   fireEvent.click(screen.getAllByRole("button", { name: "Create account" }).at(-1)!);
@@ -60,8 +54,35 @@ test("signup without session asks user to verify email and skips bootstrap", asy
   );
   expect(mocks.signUpWithEmail).toHaveBeenCalledWith(
     "user@example.com",
-    "password123",
-    { phone: "13800000000", companyName: "Acme" }
+    "password123"
   );
+  expect(mocks.bootstrapUser).not.toHaveBeenCalled();
+});
+
+test("signup with immediate session closes modal and calls onSuccess", async () => {
+  const onClose = vi.fn();
+  const onSuccess = vi.fn();
+  mocks.signUpWithEmail.mockResolvedValue({
+    data: { session: { access_token: "token" } },
+    error: null,
+  });
+
+  const { container } = render(<RegisterModal open onClose={onClose} onSuccess={onSuccess} />);
+  const emailInput = container.querySelector('input[name="email"]');
+  const passwordInput = container.querySelector('input[name="password"]');
+
+  fireEvent.change(emailInput!, {
+    target: { value: "user@example.com" },
+  });
+  fireEvent.change(passwordInput!, {
+    target: { value: "password123" },
+  });
+
+  fireEvent.click(screen.getAllByRole("button", { name: "Create account" }).at(-1)!);
+
+  await waitFor(() => {
+    expect(onSuccess).toHaveBeenCalledTimes(1);
+  });
+  expect(onClose).toHaveBeenCalledTimes(1);
   expect(mocks.bootstrapUser).not.toHaveBeenCalled();
 });

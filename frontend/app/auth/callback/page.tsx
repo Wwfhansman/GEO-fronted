@@ -105,7 +105,7 @@ function CallbackHandler() {
           ? metadata.companyName.trim()
           : (localDraft?.companyName || "").trim();
 
-        if (email && phone && companyName) {
+        if (email) {
           localStorage.setItem("geo_pending_bootstrap", JSON.stringify({ email, phone, companyName }));
         }
       } catch {

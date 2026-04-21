@@ -3,7 +3,7 @@
 import React, { useEffect, useRef, useState } from "react";
 
 import { bootstrapUser } from "../../lib/api";
-import { PendingBootstrapProfile, signInWithEmail, signUpWithEmail } from "../../lib/auth";
+import { signInWithEmail, signUpWithEmail } from "../../lib/auth";
 import { useLanguage } from "../providers/LanguageProvider";
 import { TurnstileWidget } from "./TurnstileWidget";
 
@@ -117,10 +117,8 @@ export function RegisterModal({
 
       const email = ((form.get("email") as string) || "").trim();
       const password = ((form.get("password") as string) || "").trim();
-      const phone = ((form.get("phone") as string) || "").trim();
-      const companyName = ((form.get("companyName") as string) || "").trim();
-      if (!email || !password || !phone || !companyName) {
-        setError(language === "zh" ? "请填写所有必填项" : "Please complete all required fields.");
+      if (!email || !password) {
+        setError(language === "zh" ? "请填写邮箱和密码" : "Please enter both email and password.");
         return;
       }
       if (requiresTurnstile && !turnstileToken) {
@@ -128,17 +126,14 @@ export function RegisterModal({
         return;
       }
 
-      const pendingProfile: PendingBootstrapProfile = { phone, companyName };
       try {
         localStorage.setItem("geo_pending_bootstrap", JSON.stringify({
           email,
-          phone,
-          companyName,
         }));
       } catch {
         // ignore storage failures
       }
-      const { data, error: authError } = await signUpWithEmail(email, password, pendingProfile);
+      const { data, error: authError } = await signUpWithEmail(email, password);
       if (authError) {
         setError(mapAuthError(authError.message));
         return;
@@ -153,9 +148,14 @@ export function RegisterModal({
         return;
       }
 
-      await bootstrapUser({ email, phone, company_name: companyName, turnstile_token: turnstileToken ?? undefined });
+      setNotice(
+        language === "zh"
+          ? "邮箱已验证，您已登录。接下来进入检测流程时会继续补充公司资料。"
+          : "Your email is verified and you are now signed in. Company details will be completed in the next step."
+      );
       await onSuccess?.();
       onClose();
+      return;
     } catch (err) {
       setError(err instanceof Error ? err.message : (language === "zh" ? "操作失败，请重试" : "Action failed. Please try again."));
     } finally {
@@ -181,7 +181,7 @@ export function RegisterModal({
             <p className="text-xs text-on-surface-variant mt-1">
               {isBootstrap
                 ? (language === "zh" ? "完成手机号和公司信息补录，继续检测" : "Add phone and company details to continue the audit")
-                : (language === "zh" ? "加入 GiuGEO 体验完整智库分析" : "Join GiuGEO for the full intelligence workflow")}
+                : (language === "zh" ? "先完成邮箱注册，验证后再补充公司资料" : "Create your account first, then complete company details after email verification.")}
             </p>
           </div>
           <button
@@ -250,7 +250,7 @@ export function RegisterModal({
               </div>
             )}
 
-            {(isBootstrap || tab === "signup") && (
+            {isBootstrap && (
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <label className="text-xs font-bold uppercase tracking-widest text-on-surface-variant">{language === "zh" ? "手机号" : "Phone"}</label>
