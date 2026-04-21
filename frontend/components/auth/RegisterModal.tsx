@@ -53,13 +53,13 @@ export function RegisterModal({
     const normalized = message.toLowerCase();
     if (normalized.includes("email rate limit exceeded")) {
       return language === "zh"
-        ? "当前环境仍在触发邮箱验证发信，请关闭 Supabase 的邮箱确认后再试。"
-        : "Email confirmation is still being triggered in this environment. Please disable Supabase email confirmation and try again.";
+        ? "当前邮箱发送过于频繁，请稍后再试。"
+        : "Too many verification emails were requested. Please try again later.";
     }
     if (normalized.includes("email not confirmed")) {
       return language === "zh"
-        ? "本项目当前仍在要求邮箱验证，请先在 Supabase Auth 设置里关闭邮箱确认。"
-        : "This project is still requiring email confirmation. Please disable Confirm email in Supabase Auth first.";
+        ? "请先完成邮箱验证后再登录。"
+        : "Please verify your email before signing in.";
     }
     return message;
   }

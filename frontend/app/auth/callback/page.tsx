@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { getSupabaseClient } from "../../../lib/auth";
@@ -10,6 +11,13 @@ type BootstrapDraft = {
   phone?: string;
   companyName?: string;
 };
+
+function readHashParams() {
+  if (typeof window === "undefined") {
+    return new URLSearchParams();
+  }
+  return new URLSearchParams(window.location.hash.replace(/^#/, ""));
+}
 
 function CallbackHandler() {
   const router = useRouter();
@@ -22,10 +30,12 @@ function CallbackHandler() {
   useEffect(() => {
     async function handleCallback() {
       const code = searchParams.get("code");
-      if (!code) {
-        setTimeout(() => router.replace("/test"), 500);
-        return;
-      }
+      const hashParams = readHashParams();
+      const accessToken = hashParams.get("access_token");
+      const refreshToken = hashParams.get("refresh_token");
+      const hashError = hashParams.get("error");
+      const hashErrorCode = hashParams.get("error_code");
+      const hashErrorDescription = hashParams.get("error_description");
 
       const sb = getSupabaseClient();
       if (!sb) {
@@ -37,13 +47,46 @@ function CallbackHandler() {
         return;
       }
 
-      const { error } = await sb.auth.exchangeCodeForSession(code);
-      if (error) {
+      if (hashError) {
+        const decodedDescription = hashErrorDescription ?? "";
+        const expired = hashErrorCode === "otp_expired";
         setMessage(
-          language === "zh"
-            ? `验证失败：${error.message}`
-            : `Verification failed: ${error.message}`
+          expired
+            ? (language === "zh"
+                ? "邮箱验证链接已失效，请重新注册或重新发送验证邮件。"
+                : "This verification link has expired. Please sign up again or request a new verification email.")
+            : (language === "zh"
+                ? `验证失败：${decodedDescription || hashError}`
+                : `Verification failed: ${decodedDescription || hashError}`)
         );
+        return;
+      }
+
+      if (code) {
+        const { error } = await sb.auth.exchangeCodeForSession(code);
+        if (error) {
+          setMessage(
+            language === "zh"
+              ? `验证失败：${error.message}`
+              : `Verification failed: ${error.message}`
+          );
+          return;
+        }
+      } else if (accessToken && refreshToken) {
+        const { error } = await sb.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken,
+        });
+        if (error) {
+          setMessage(
+            language === "zh"
+              ? `验证失败：${error.message}`
+              : `Verification failed: ${error.message}`
+          );
+          return;
+        }
+      } else {
+        setTimeout(() => router.replace("/test"), 500);
         return;
       }
 

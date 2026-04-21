@@ -212,16 +212,19 @@ export default function TestPage() {
   const [provider, setProvider] = useState("豆包");
 
   const refreshContext = useCallback(async () => {
+    const token = await getAccessToken();
+    if (!token) {
+      setIsAuthenticated(false);
+      setContext(null);
+      setCurrentEmail("");
+      return;
+    }
+
+    setIsAuthenticated(true);
+    const email = await getCurrentUserEmail();
+    setCurrentEmail(email || "");
+
     try {
-      const token = await getAccessToken();
-      if (!token) {
-        setIsAuthenticated(false);
-        setContext(null);
-        return;
-      }
-      setIsAuthenticated(true);
-      const email = await getCurrentUserEmail();
-      setCurrentEmail(email || "");
       const ctx = await getUserContext();
       setContext(ctx);
       if (ctx.is_registered) {
@@ -253,12 +256,12 @@ export default function TestPage() {
           // Ignore invalid local draft data
         }
       }
-    } catch {
-      setIsAuthenticated(false);
+    } catch (err) {
       setContext(null);
-      setCurrentEmail("");
+      setHistory([]);
+      setError(err instanceof Error ? err.message : copy.errorLoadingContext);
     }
-  }, []);
+  }, [copy.errorLoadingContext]);
 
   const executeRequest = useCallback(
     async (request: ExecuteTestRequest) => {
