@@ -231,6 +231,27 @@ export default function TestPage() {
         } catch {
           // History fetch failure should not break the main flow
         }
+      } else if (typeof window !== "undefined") {
+        const params = new URLSearchParams(window.location.search);
+        const shouldResumeBootstrap = params.get("complete_registration") === "1";
+        try {
+          const raw = localStorage.getItem("geo_pending_bootstrap");
+          if (raw) {
+            const pending = JSON.parse(raw) as { phone?: string; companyName?: string };
+            setBootstrapEmail(email || "");
+            setBootstrapPhone(pending.phone || "");
+            setBootstrapCompany(pending.companyName || "");
+            setRegisterMode("bootstrap");
+            setRegisterOpen(true);
+            if (shouldResumeBootstrap) {
+              params.delete("complete_registration");
+              const nextSearch = params.toString();
+              window.history.replaceState({}, "", nextSearch ? `/test?${nextSearch}` : "/test");
+            }
+          }
+        } catch {
+          // Ignore invalid local draft data
+        }
       }
     } catch {
       setIsAuthenticated(false);
@@ -259,13 +280,20 @@ export default function TestPage() {
         });
         await refreshContext();
       } catch (err) {
-        setError(err instanceof Error ? err.message : copy.errorExecuteFailed);
+        const message = err instanceof Error ? err.message : copy.errorExecuteFailed;
+        setError(
+          message === "Email verification required"
+            ? (language === "zh"
+                ? "请先完成邮箱验证，再开始测试。"
+                : "Please verify your email before starting the audit.")
+            : message
+        );
       } finally {
         executeInFlightRef.current = false;
         setLoading(false);
       }
     },
-    [refreshContext]
+    [copy.errorExecuteFailed, language, refreshContext]
   );
 
   const handleBootstrapSuccess = useCallback(async () => {

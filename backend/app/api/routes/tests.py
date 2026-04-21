@@ -2,7 +2,7 @@ from collections.abc import Mapping
 from datetime import datetime
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
@@ -16,6 +16,7 @@ from app.services.llm_review import review_response_with_llm
 from app.services.metrics import calculate_overall_evaluation_text
 from app.services.prompt_builder import build_prompt_with_default_template
 from app.services.provider_adapter import ProviderError, get_provider_adapter
+from app.services.rate_limit import is_rate_limited
 from app.services.result_merger import adjudicate_result
 from app.services.rule_matcher import rule_match_company
 
@@ -30,14 +31,54 @@ def _get_user_or_403(session: Session, claims: Mapping[str, object]) -> User:
     return user
 
 
+def _claims_email_verified(claims: Mapping[str, object]) -> bool:
+    email_verified = claims.get("email_verified")
+    email_confirmed_at = claims.get("email_confirmed_at")
+    return bool(email_verified) or email_confirmed_at is not None
+
+
+def _assert_verified_email(session: Session, user: User, claims: Mapping[str, object]) -> None:
+    if _claims_email_verified(claims):
+        if not user.email_verified:
+            user.email_verified = True
+            session.commit()
+        return
+
+    if not user.email_verified:
+        raise HTTPException(status_code=403, detail="Email verification required")
+
+
+def _client_ip(request: Request) -> str:
+    return request.client.host if request.client else "unknown"
+
+
 @router.post("/execute", response_model=ExecuteTestResponse)
 def execute_test(
     payload: ExecuteTestRequest,
+    request: Request,
     claims: Mapping[str, object] = Depends(require_jwt_claims),
     x_visitor_id: Optional[str] = Header(default=None),
     db: Session = Depends(get_db),
 ):
     user = _get_user_or_403(db, claims)
+    _assert_verified_email(db, user, claims)
+    client_ip = _client_ip(request)
+
+    if is_rate_limited(
+        db,
+        f"tests:ip:{client_ip}",
+        settings.test_rate_limit_per_ip,
+        settings.test_rate_limit_window_seconds,
+    ):
+        raise HTTPException(status_code=429, detail="Too many test executions from this IP")
+
+    if is_rate_limited(
+        db,
+        f"tests:user:{user.id}",
+        settings.test_rate_limit_per_user,
+        settings.test_rate_limit_window_seconds,
+    ):
+        raise HTTPException(status_code=429, detail="Too many test executions for this account")
 
     metrics = db.get(UserTestMetrics, user.id)
     if metrics is None:

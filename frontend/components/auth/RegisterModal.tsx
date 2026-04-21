@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 
 import { bootstrapUser } from "../../lib/api";
 import { PendingBootstrapProfile, signInWithEmail, signUpWithEmail } from "../../lib/auth";
 import { useLanguage } from "../providers/LanguageProvider";
+import { TurnstileWidget } from "./TurnstileWidget";
 
 type RegisterModalProps = {
   open: boolean;
@@ -30,7 +31,14 @@ export function RegisterModal({
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [loading, setLoading] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const submitLockedRef = useRef(false);
+
+  useEffect(() => {
+    if (open) {
+      setTurnstileToken(null);
+    }
+  }, [mode, open, tab]);
 
   if (!open) return null;
 
@@ -38,6 +46,7 @@ export function RegisterModal({
     setTab(next);
     setError("");
     setNotice("");
+    setTurnstileToken(null);
   }
 
   function mapAuthError(message: string) {
@@ -76,7 +85,11 @@ export function RegisterModal({
           setError(language === "zh" ? "请填写邮箱、手机号和公司名" : "Please complete email, phone, and company name.");
           return;
         }
-        await bootstrapUser({ email, phone, company_name: companyName });
+        if (requiresTurnstile && !turnstileToken) {
+          setError(language === "zh" ? "请先完成人机验证" : "Please complete the verification challenge first.");
+          return;
+        }
+        await bootstrapUser({ email, phone, company_name: companyName, turnstile_token: turnstileToken ?? undefined });
         try { localStorage.removeItem("geo_pending_bootstrap"); } catch { /* ignore */ }
         await onSuccess?.();
         onClose();
@@ -110,8 +123,21 @@ export function RegisterModal({
         setError(language === "zh" ? "请填写所有必填项" : "Please complete all required fields.");
         return;
       }
+      if (requiresTurnstile && !turnstileToken) {
+        setError(language === "zh" ? "请先完成人机验证" : "Please complete the verification challenge first.");
+        return;
+      }
 
       const pendingProfile: PendingBootstrapProfile = { phone, companyName };
+      try {
+        localStorage.setItem("geo_pending_bootstrap", JSON.stringify({
+          email,
+          phone,
+          companyName,
+        }));
+      } catch {
+        // ignore storage failures
+      }
       const { data, error: authError } = await signUpWithEmail(email, password, pendingProfile);
       if (authError) {
         setError(mapAuthError(authError.message));
@@ -119,15 +145,15 @@ export function RegisterModal({
       }
 
       if (!data.session) {
-        setError(
+        setNotice(
           language === "zh"
-            ? "注册后没有拿到登录态。当前项目大概率仍开启了邮箱验证，请先关闭 Supabase 的 Confirm email。"
-            : "No active session was returned after sign up. Supabase Confirm email is likely still enabled. Please disable it first.",
+            ? "注册成功。请前往邮箱完成验证，验证后会自动返回并继续完成注册。"
+            : "Account created. Please verify your email to continue. After confirmation, you will be redirected back automatically.",
         );
         return;
       }
 
-      await bootstrapUser({ email, phone, company_name: companyName });
+      await bootstrapUser({ email, phone, company_name: companyName, turnstile_token: turnstileToken ?? undefined });
       await onSuccess?.();
       onClose();
     } catch (err) {
@@ -139,6 +165,8 @@ export function RegisterModal({
   }
 
   const isBootstrap = mode === "bootstrap";
+  const turnstileEnabled = Boolean(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY);
+  const requiresTurnstile = turnstileEnabled && (isBootstrap || tab === "signup");
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
@@ -249,6 +277,12 @@ export function RegisterModal({
 
             {notice && <div className="text-green-400 text-sm mt-2 flex items-center gap-1"><span className="material-symbols-outlined text-[16px]">info</span>{notice}</div>}
             {error && <div className="text-red-400 text-sm mt-2 flex items-center gap-1"><span className="material-symbols-outlined text-[16px]">error</span>{error}</div>}
+
+            {requiresTurnstile ? (
+              <div className="pt-2">
+                <TurnstileWidget onTokenChange={setTurnstileToken} />
+              </div>
+            ) : null}
 
             <div className="pt-4">
               <button

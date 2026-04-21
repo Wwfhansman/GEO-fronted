@@ -22,6 +22,13 @@ class Settings(BaseSettings):
     lead_notification_to: str = ""
     cors_allow_origins: str = "http://localhost:3000"
     admin_email_whitelist: str = ""
+    turnstile_secret_key: str = ""
+    turnstile_verify_url: str = "https://challenges.cloudflare.com/turnstile/v0/siteverify"
+    bootstrap_rate_limit_per_ip: int = 10
+    bootstrap_rate_limit_window_seconds: int = 3600
+    test_rate_limit_per_ip: int = 20
+    test_rate_limit_per_user: int = 10
+    test_rate_limit_window_seconds: int = 3600
 
     @field_validator(
         "database_url",
@@ -37,6 +44,8 @@ class Settings(BaseSettings):
         "review_model_api_key",
         "cors_allow_origins",
         "admin_email_whitelist",
+        "turnstile_secret_key",
+        "turnstile_verify_url",
         mode="before",
     )
     @classmethod

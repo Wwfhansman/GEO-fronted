@@ -21,7 +21,7 @@ beforeEach(() => {
   vi.clearAllMocks();
 });
 
-test("signup without session shows config guidance and skips bootstrap", async () => {
+test("signup without session asks user to verify email and skips bootstrap", async () => {
   mocks.signUpWithEmail.mockResolvedValue({
     data: { session: null },
     error: null,
@@ -55,7 +55,7 @@ test("signup without session shows config guidance and skips bootstrap", async (
 
   await waitFor(() =>
     expect(
-      screen.getByText("No active session was returned after sign up. Supabase Confirm email is likely still enabled. Please disable it first.")
+      screen.getByText("Account created. Please verify your email to continue. After confirmation, you will be redirected back automatically.")
     ).toBeTruthy()
   );
   expect(mocks.signUpWithEmail).toHaveBeenCalledWith(

@@ -1,5 +1,6 @@
 from fastapi.testclient import TestClient
 
+from app.core.config import settings
 from app.main import app
 
 
@@ -89,3 +90,85 @@ def test_bootstrap_user_accepts_asymmetric_jwt_via_jwks(monkeypatch):
 
     assert response.status_code == 200
     assert response.json()["email"] == "rsa@example.com"
+
+
+def test_bootstrap_user_requires_turnstile_when_enabled(auth_token, monkeypatch):
+    client = TestClient(app)
+    monkeypatch.setattr(settings, "turnstile_secret_key", "turnstile-secret")
+    monkeypatch.setattr("app.api.routes.auth.verify_turnstile_token", lambda token, remote_ip: False)
+
+    response = client.post(
+        "/api/auth/bootstrap",
+        headers={"Authorization": f"Bearer {auth_token(email='guard@example.com', sub='guard-1')}"},
+        json={
+            "email": "ignored@example.com",
+            "phone": "13800000000",
+            "company_name": "Acme",
+        },
+    )
+
+    assert response.status_code == 403
+    assert response.json()["detail"] == "Turnstile verification failed"
+
+
+def test_bootstrap_user_rate_limits_by_ip(auth_token, monkeypatch):
+    client = TestClient(app)
+    monkeypatch.setattr(settings, "bootstrap_rate_limit_per_ip", 1)
+    monkeypatch.setattr(settings, "bootstrap_rate_limit_window_seconds", 3600)
+
+    first = client.post(
+        "/api/auth/bootstrap",
+        headers={"Authorization": f"Bearer {auth_token(email='first@example.com', sub='first-1')}"},
+        json={
+            "email": "ignored@example.com",
+            "phone": "13800000000",
+            "company_name": "First Co",
+        },
+    )
+    second = client.post(
+        "/api/auth/bootstrap",
+        headers={"Authorization": f"Bearer {auth_token(email='second@example.com', sub='second-1')}"},
+        json={
+            "email": "ignored@example.com",
+            "phone": "13800000001",
+            "company_name": "Second Co",
+        },
+    )
+
+    assert first.status_code == 200
+    assert second.status_code == 429
+    assert second.json()["detail"] == "Too many bootstrap attempts"
+
+
+def test_bootstrap_user_ignores_spoofed_forwarded_for(auth_token, monkeypatch):
+    client = TestClient(app)
+    monkeypatch.setattr(settings, "bootstrap_rate_limit_per_ip", 1)
+    monkeypatch.setattr(settings, "bootstrap_rate_limit_window_seconds", 3600)
+
+    first = client.post(
+        "/api/auth/bootstrap",
+        headers={
+            "Authorization": f"Bearer {auth_token(email='spoof1@example.com', sub='spoof-1')}",
+            "X-Forwarded-For": "1.1.1.1",
+        },
+        json={
+            "email": "ignored@example.com",
+            "phone": "13800000000",
+            "company_name": "First Co",
+        },
+    )
+    second = client.post(
+        "/api/auth/bootstrap",
+        headers={
+            "Authorization": f"Bearer {auth_token(email='spoof2@example.com', sub='spoof-2')}",
+            "X-Forwarded-For": "8.8.8.8",
+        },
+        json={
+            "email": "ignored@example.com",
+            "phone": "13800000001",
+            "company_name": "Second Co",
+        },
+    )
+
+    assert first.status_code == 200
+    assert second.status_code == 429

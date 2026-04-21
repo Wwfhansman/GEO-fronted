@@ -38,6 +38,7 @@ export interface BootstrapUserRequest {
   email: string;
   phone: string;
   company_name: string;
+  turnstile_token?: string;
 }
 
 export interface BootstrapUserResponse {

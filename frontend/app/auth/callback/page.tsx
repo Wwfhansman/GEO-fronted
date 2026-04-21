@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { getSupabaseClient } from "../../../lib/auth";
+import { useLanguage } from "../../../components/providers/LanguageProvider";
 
 type BootstrapDraft = {
   email?: string;
@@ -13,7 +14,10 @@ type BootstrapDraft = {
 function CallbackHandler() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [message, setMessage] = useState("正在验证身份，请稍候...");
+  const { language } = useLanguage();
+  const [message, setMessage] = useState(
+    language === "zh" ? "正在验证身份，请稍候..." : "Verifying your account..."
+  );
 
   useEffect(() => {
     async function handleCallback() {
@@ -25,13 +29,21 @@ function CallbackHandler() {
 
       const sb = getSupabaseClient();
       if (!sb) {
-        setMessage("客户端配置缺失，请联系管理员。");
+        setMessage(
+          language === "zh"
+            ? "客户端配置缺失，请联系管理员。"
+            : "Client configuration is missing. Please contact support."
+        );
         return;
       }
 
       const { error } = await sb.auth.exchangeCodeForSession(code);
       if (error) {
-        setMessage(`验证失败：${error.message}`);
+        setMessage(
+          language === "zh"
+            ? `验证失败：${error.message}`
+            : `Verification failed: ${error.message}`
+        );
         return;
       }
 
@@ -51,20 +63,22 @@ function CallbackHandler() {
           : (localDraft?.companyName || "").trim();
 
         if (email && phone && companyName) {
-          const { bootstrapUser } = await import("../../../lib/api");
-          await bootstrapUser({ email, phone, company_name: companyName });
+          localStorage.setItem("geo_pending_bootstrap", JSON.stringify({ email, phone, companyName }));
         }
-        localStorage.removeItem("geo_pending_bootstrap");
       } catch {
-        setMessage("邮箱已验证，但自动完成注册失败。请返回测试页补充手机号和公司信息。");
+        setMessage(
+          language === "zh"
+            ? "邮箱已验证，但未能恢复补注册信息。请返回测试页补充手机号和公司信息。"
+            : "Your email was verified, but we could not restore your profile draft. Please return to the test page and complete registration."
+        );
         return;
       }
 
-      router.replace("/test");
+      router.replace("/test?complete_registration=1");
     }
 
     handleCallback();
-  }, [router, searchParams]);
+  }, [language, router, searchParams]);
 
   return <p>{message}</p>;
 }
@@ -72,7 +86,7 @@ function CallbackHandler() {
 export default function AuthCallbackPage() {
   return (
     <main style={{ maxWidth: 480, margin: "80px auto", textAlign: "center", padding: 24 }}>
-      <Suspense fallback={<p>正在验证身份，请稍候...</p>}>
+      <Suspense fallback={<p>Loading...</p>}>
         <CallbackHandler />
       </Suspense>
     </main>

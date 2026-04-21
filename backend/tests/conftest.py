@@ -22,7 +22,7 @@ def reset_test_database():
 @pytest.fixture
 def auth_token():
     def _build(email: str = "user@example.com", sub: str = "user-123", **extra_claims):
-        claims = {"sub": sub, "email": email, **extra_claims}
+        claims = {"sub": sub, "email": email, "email_verified": True, **extra_claims}
         return jwt.encode(claims, os.environ["SUPABASE_JWT_SECRET"], algorithm="HS256")
 
     return _build
