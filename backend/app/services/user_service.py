@@ -2,9 +2,11 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 
+import httpx
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.models import User, UserTestMetrics
 from app.schemas.auth import BootstrapUserRequest
 from app.schemas.context import UserContextResponse
@@ -20,11 +22,46 @@ def _claim_bool(claims: Mapping[str, object], *keys: str) -> bool:
     return False
 
 
+def claims_email_verified(claims: Mapping[str, object]) -> bool:
+    return _claim_bool(claims, "email_verified", "email_confirmed_at")
+
+
 def _get_required_claim(claims: Mapping[str, object], key: str) -> str:
     value = claims.get(key)
     if not isinstance(value, str) or not value.strip():
         raise ValueError(f"missing_claim:{key}")
     return value.strip()
+
+
+def _fetch_supabase_email_verified(auth_id: str) -> bool:
+    project_url = settings.supabase_project_url.strip().rstrip("/")
+    service_role_key = settings.supabase_service_role_key.strip()
+    if not project_url or not service_role_key:
+        return False
+
+    url = f"{project_url}/auth/v1/admin/users/{auth_id}"
+    try:
+        response = httpx.get(
+            url,
+            headers={
+                "apikey": service_role_key,
+                "Authorization": f"Bearer {service_role_key}",
+            },
+            timeout=5.0,
+        )
+        response.raise_for_status()
+        payload = response.json()
+    except Exception:
+        return False
+
+    return bool(payload.get("email_confirmed_at"))
+
+
+def resolve_email_verified(claims: Mapping[str, object]) -> bool:
+    if claims_email_verified(claims):
+        return True
+    auth_id = _get_required_claim(claims, "sub")
+    return _fetch_supabase_email_verified(auth_id)
 
 
 def upsert_bootstrap_user(
@@ -53,7 +90,7 @@ def upsert_bootstrap_user(
         user.phone = payload.phone
         user.company_name = payload.company_name
 
-    claim_email_verified = _claim_bool(claims, "email_verified", "email_confirmed_at")
+    claim_email_verified = resolve_email_verified(claims)
     if claim_email_verified or user.email_verified:
         user.email_verified = True
     else:

@@ -80,6 +80,56 @@ def test_bootstrap_user_does_not_downgrade_email_verified(auth_token):
         db.close()
 
 
+def test_bootstrap_user_does_not_trust_user_metadata_email_verified(auth_token):
+    client = TestClient(app)
+    token = auth_token(
+        email="metadata@example.com",
+        sub="auth-meta",
+        email_verified=False,
+        user_metadata={"email_verified": True},
+    )
+
+    response = client.post(
+        "/api/auth/bootstrap",
+        headers={"Authorization": f"Bearer {token}"},
+        json={"email": "ignored@example.com", "phone": "111", "company_name": "Metadata Co"},
+    )
+
+    assert response.status_code == 200
+
+    db = next(get_db())
+    try:
+        user = db.query(User).filter(User.email == "metadata@example.com").one()
+        assert user.email_verified is False
+    finally:
+        db.close()
+
+
+def test_bootstrap_user_marks_verified_from_supabase_admin_lookup(auth_token, monkeypatch):
+    client = TestClient(app)
+    monkeypatch.setattr("app.services.user_service._fetch_supabase_email_verified", lambda auth_id: True)
+    token = auth_token(
+        email="lookup@example.com",
+        sub="auth-lookup",
+        email_verified=False,
+    )
+
+    response = client.post(
+        "/api/auth/bootstrap",
+        headers={"Authorization": f"Bearer {token}"},
+        json={"email": "ignored@example.com", "phone": "111", "company_name": "Lookup Co"},
+    )
+
+    assert response.status_code == 200
+
+    db = next(get_db())
+    try:
+        user = db.query(User).filter(User.email == "lookup@example.com").one()
+        assert user.email_verified is True
+    finally:
+        db.close()
+
+
 def test_bootstrap_user_rejects_invalid_jwt():
     client = TestClient(app)
     response = client.post(

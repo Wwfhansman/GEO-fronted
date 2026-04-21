@@ -106,6 +106,65 @@ def test_execute_test_requires_verified_email(auth_token, mock_provider):
     assert resp.json()["detail"] == "Email verification required"
 
 
+def test_execute_test_does_not_trust_user_metadata_email_verified(auth_token, mock_provider):
+    mock_provider("推荐 VerifyCo 作为候选公司。")
+    client = TestClient(app)
+    metadata_token = auth_token(
+        email="metadata-verify@example.com",
+        sub="metadata-verify-sub",
+        email_verified=False,
+        user_metadata={"email_verified": True},
+    )
+    resp = client.post(
+        "/api/auth/bootstrap",
+        headers={"Authorization": f"Bearer {metadata_token}"},
+        json={"email": "metadata-verify@example.com", "phone": "13800000000", "company_name": "VerifyCo"},
+    )
+    assert resp.status_code == 200
+
+    resp = client.post(
+        "/api/tests/execute",
+        headers={"Authorization": f"Bearer {metadata_token}"},
+        json={
+            "company_name": "VerifyCo",
+            "product_keyword": "验证测试",
+            "industry": "IT科技",
+            "provider": "ChatGPT",
+        },
+    )
+    assert resp.status_code == 403
+    assert resp.json()["detail"] == "Email verification required"
+
+
+def test_execute_test_accepts_verified_email_from_supabase_admin_lookup(auth_token, mock_provider, monkeypatch):
+    mock_provider("推荐 VerifyCo 作为候选公司。")
+    client = TestClient(app)
+    monkeypatch.setattr("app.services.user_service._fetch_supabase_email_verified", lambda auth_id: True)
+    metadata_token = auth_token(
+        email="metadata-verify@example.com",
+        sub="metadata-verify-sub",
+        email_verified=False,
+    )
+    resp = client.post(
+        "/api/auth/bootstrap",
+        headers={"Authorization": f"Bearer {metadata_token}"},
+        json={"email": "metadata-verify@example.com", "phone": "13800000000", "company_name": "VerifyCo"},
+    )
+    assert resp.status_code == 200
+
+    resp = client.post(
+        "/api/tests/execute",
+        headers={"Authorization": f"Bearer {metadata_token}"},
+        json={
+            "company_name": "VerifyCo",
+            "product_keyword": "验证测试",
+            "industry": "IT科技",
+            "provider": "ChatGPT",
+        },
+    )
+    assert resp.status_code == 200
+
+
 def test_execute_test_quota_exhaustion(auth_token, mock_provider):
     mock_provider("推荐 QuotaCo 作为候选公司。")
     client = TestClient(app)

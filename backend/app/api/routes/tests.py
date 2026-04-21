@@ -19,6 +19,7 @@ from app.services.provider_adapter import ProviderError, get_provider_adapter
 from app.services.rate_limit import is_rate_limited
 from app.services.result_merger import adjudicate_result
 from app.services.rule_matcher import rule_match_company
+from app.services.user_service import resolve_email_verified
 
 router = APIRouter(prefix="/api/tests", tags=["tests"])
 
@@ -31,14 +32,8 @@ def _get_user_or_403(session: Session, claims: Mapping[str, object]) -> User:
     return user
 
 
-def _claims_email_verified(claims: Mapping[str, object]) -> bool:
-    email_verified = claims.get("email_verified")
-    email_confirmed_at = claims.get("email_confirmed_at")
-    return bool(email_verified) or email_confirmed_at is not None
-
-
 def _assert_verified_email(session: Session, user: User, claims: Mapping[str, object]) -> None:
-    if _claims_email_verified(claims):
+    if resolve_email_verified(claims):
         if not user.email_verified:
             user.email_verified = True
             session.commit()
