@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useId, useRef, useState } from "react";
 import Link from "next/link";
 import { RegisterModal } from "../../components/auth/RegisterModal";
 import { Header } from "../../components/layout/Header";
@@ -178,8 +178,25 @@ const industryOptions = [
   { value: "传统零售", zh: "传统零售", en: "Retail" },
 ] as const;
 
+const providerOptions = [
+  { id: "豆包", icon: "forum", zh: "豆包", en: "Doubao" },
+  { id: "ChatGPT", icon: "bolt", zh: "ChatGPT", en: "ChatGPT" },
+  { id: "DeepSeek", icon: "radar", zh: "DeepSeek", en: "DeepSeek" },
+  { id: "千问", icon: "chat", zh: "千问", en: "Qwen" },
+] as const;
+
 export default function TestPage() {
   const { language } = useLanguage();
+  const idBase = useId();
+  const companyInputId = `${idBase}-company`;
+  const keywordInputId = `${idBase}-keyword`;
+  const industrySelectId = `${idBase}-industry`;
+  const providerGroupId = `${idBase}-provider-group`;
+  const providerLabelId = `${idBase}-provider-label`;
+  const companyLabelId = `${idBase}-company-label`;
+  const keywordLabelId = `${idBase}-keyword-label`;
+  const industryLabelId = `${idBase}-industry-label`;
+  const formErrorId = `${idBase}-form-error`;
   const copy = testPageCopy[language];
   const contactLeadCooldownMs = 24 * 60 * 60 * 1000;
   const [registerOpen, setRegisterOpen] = useState(false);
@@ -210,6 +227,14 @@ export default function TestPage() {
   const [productKeyword, setProductKeyword] = useState("");
   const [industry, setIndustry] = useState("医疗健康");
   const [provider, setProvider] = useState("豆包");
+
+  function getProviderDisplayName(providerId: string) {
+    const match = providerOptions.find((option) => option.id === providerId);
+    if (!match) {
+      return providerId;
+    }
+    return language === "zh" ? match.zh : match.en;
+  }
 
   const refreshContext = useCallback(async () => {
     const token = await getAccessToken();
@@ -490,13 +515,6 @@ export default function TestPage() {
     }
   }
 
-  const providers = [
-    { id: "豆包", icon: "forum" },
-    { id: "ChatGPT", icon: "bolt" },
-    { id: "DeepSeek", icon: "radar" },
-    { id: "千问", icon: "chat" }
-  ];
-
   return (
     <div className="flex flex-col min-h-screen">
       <Header
@@ -507,7 +525,7 @@ export default function TestPage() {
         activePath="/test"
       />
 
-      <main className="max-w-screen-2xl mx-auto px-8 py-8 flex-grow w-full">
+      <main className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-grow w-full">
         <div className="mb-6">
           <h1 className="text-4xl md:text-5xl font-extrabold tracking-tighter text-on-surface mb-2">{copy.title}</h1>
           <p className="text-sm md:text-base text-on-surface-variant font-body max-w-2xl">
@@ -563,12 +581,16 @@ export default function TestPage() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
                   <div className="space-y-2">
-                    <label className="text-xs font-bold uppercase tracking-widest text-on-surface-variant">{copy.companyLabel}</label>
+                    <label id={companyLabelId} htmlFor={companyInputId} className="text-xs font-bold uppercase tracking-widest text-on-surface-variant">{copy.companyLabel}</label>
                     <input
+                      id={companyInputId}
                       className="w-full bg-surface-container-lowest border border-outline-variant/40 focus:border-primary focus:ring-1 focus:ring-primary rounded-xl px-4 py-4 transition-all text-on-surface"
                       placeholder={copy.companyPlaceholder}
                       type="text"
                       value={companyName}
+                      aria-labelledby={companyLabelId}
+                      aria-invalid={Boolean(error && !companyName.trim())}
+                      aria-describedby={error ? formErrorId : undefined}
                       onChange={(e) => {
                         handleFormStart();
                         setCompanyName(e.target.value);
@@ -577,12 +599,16 @@ export default function TestPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-xs font-bold uppercase tracking-widest text-on-surface-variant">{copy.keywordLabel}</label>
+                    <label id={keywordLabelId} htmlFor={keywordInputId} className="text-xs font-bold uppercase tracking-widest text-on-surface-variant">{copy.keywordLabel}</label>
                     <input
+                      id={keywordInputId}
                       className="w-full bg-surface-container-lowest border border-outline-variant/40 focus:border-primary focus:ring-1 focus:ring-primary rounded-xl px-4 py-4 transition-all text-on-surface"
                       placeholder={copy.keywordPlaceholder}
                       type="text"
                       value={productKeyword}
+                      aria-labelledby={keywordLabelId}
+                      aria-invalid={Boolean(error && !productKeyword.trim())}
+                      aria-describedby={error ? formErrorId : undefined}
                       onChange={(e) => {
                         handleFormStart();
                         setProductKeyword(e.target.value);
@@ -593,10 +619,13 @@ export default function TestPage() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
                   <div className="space-y-2">
-                    <label className="text-xs font-bold uppercase tracking-widest text-on-surface-variant">{copy.industryLabel}</label>
+                    <label id={industryLabelId} htmlFor={industrySelectId} className="text-xs font-bold uppercase tracking-widest text-on-surface-variant">{copy.industryLabel}</label>
                     <select
+                      id={industrySelectId}
                       className="w-full bg-surface-container-lowest border border-outline-variant/40 focus:border-primary focus:ring-1 focus:ring-primary rounded-xl px-4 py-4 transition-all appearance-none text-on-surface"
                       value={industry}
+                      aria-labelledby={industryLabelId}
+                      aria-describedby={error ? formErrorId : undefined}
                       onChange={(e) => {
                         handleFormStart();
                         setIndustry(e.target.value);
@@ -611,9 +640,15 @@ export default function TestPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-xs font-bold uppercase tracking-widest text-on-surface-variant">{copy.providerLabel}</label>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                      {providers.map((prov) => (
+                    <div id={providerLabelId} className="text-xs font-bold uppercase tracking-widest text-on-surface-variant">{copy.providerLabel}</div>
+                    <div
+                      id={providerGroupId}
+                      role="radiogroup"
+                      aria-labelledby={providerLabelId}
+                      aria-describedby={error ? formErrorId : undefined}
+                      className="grid grid-cols-2 sm:grid-cols-4 gap-3"
+                    >
+                      {providerOptions.map((prov) => (
                         <button
                           key={prov.id}
                           onClick={() => {
@@ -621,6 +656,8 @@ export default function TestPage() {
                             setProvider(prov.id);
                           }}
                           type="button"
+                          role="radio"
+                          aria-checked={provider === prov.id}
                           className={`rounded-xl border px-3 py-3 text-center transition-all flex items-center justify-center min-h-[56px] ${
                             provider === prov.id
                               ? "border-primary/35 bg-primary/10 shadow-[0_0_20px_rgba(255,255,255,0.06)]"
@@ -628,7 +665,7 @@ export default function TestPage() {
                           }`}
                         >
                           <span className={`text-sm font-bold ${provider === prov.id ? "text-primary" : "text-on-surface"}`}>
-                            {prov.id}
+                            {language === "zh" ? prov.zh : prov.en}
                           </span>
                         </button>
                       ))}
@@ -639,7 +676,7 @@ export default function TestPage() {
                 <div className="rounded-2xl border border-outline-variant/15 bg-surface-container-low/60 px-5 py-5">
                   <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                     <div className="text-sm text-on-surface">
-                      {copy.promptSummaryPrefix} <span className="text-primary font-bold">{provider}</span> {copy.promptSummaryMiddle}
+                      {copy.promptSummaryPrefix} <span className="text-primary font-bold">{getProviderDisplayName(provider)}</span> {copy.promptSummaryMiddle}
                     </div>
 
                     <div className="lg:w-[320px] shrink-0">
@@ -680,7 +717,7 @@ export default function TestPage() {
                   </div>
                 </div>
 
-                {error && <p className="text-red-400 text-sm mt-4">{error}</p>}
+                {error && <p id={formErrorId} role="alert" className="text-red-400 text-sm mt-4">{error}</p>}
               </div>
             </div>
           </div>
@@ -801,7 +838,7 @@ export default function TestPage() {
                         </td>
                         <td className="px-8 py-4">
                           <span className="inline-block bg-surface-container-highest px-3 py-1 rounded text-xs">
-                            {run.input_provider}
+                            {getProviderDisplayName(run.input_provider)}
                           </span>
                         </td>
                         <td className="px-8 py-4 text-sm">

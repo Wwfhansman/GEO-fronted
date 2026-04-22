@@ -9,11 +9,11 @@ export function Footer() {
 
   return (
     <footer className="bg-surface dark:bg-surface w-full border-t border-outline-variant/30 mt-auto">
-      <div className="flex flex-col md:flex-row justify-between items-center px-12 py-8 w-full max-w-screen-2xl mx-auto">
+      <div className="flex flex-col md:flex-row justify-between items-center px-4 sm:px-6 lg:px-12 py-8 w-full max-w-screen-2xl mx-auto gap-4">
         <div className="font-headline font-black text-primary mb-4 md:mb-0">
           {language === "zh" ? "GiuGEO 智能团队" : "GiuGEO Intelligence Team"}
         </div>
-        <div className="flex space-x-8 mb-4 md:mb-0">
+        <div className="flex flex-wrap justify-center gap-x-6 gap-y-3 mb-4 md:mb-0">
           <Link href="/security" className="font-body text-xs tracking-widest uppercase text-on-surface/60 hover:text-primary transition-all">
             {language === "zh" ? "安全中心" : "Security"}
           </Link>
@@ -27,7 +27,7 @@ export function Footer() {
             {language === "zh" ? "服务条款" : "Terms"}
           </Link>
         </div>
-        <div className="font-body text-xs tracking-widest uppercase text-on-surface/60 opacity-80">
+        <div className="font-body text-xs tracking-widest uppercase text-on-surface/60 opacity-80 text-center">
           {language === "zh" ? "© 2026 GiuGEO. 保留所有权利." : "© 2026 GiuGEO. All rights reserved."}
         </div>
       </div>

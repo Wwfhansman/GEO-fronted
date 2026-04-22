@@ -63,14 +63,14 @@ export function Header({
   return (
     <>
       {isAuthenticated && (
-        <div className="w-full bg-[#000000] py-2 px-8 flex justify-end items-center space-x-6 text-xs font-label tracking-tight border-b border-outline-variant/50">
-          <div className="flex items-center gap-2 opacity-80">
+        <div className="w-full bg-[#000000] px-4 sm:px-6 lg:px-8 py-2 flex flex-col sm:flex-row justify-end sm:items-center gap-2 sm:gap-6 text-xs font-label tracking-tight border-b border-outline-variant/50">
+          <div className="flex items-center gap-2 opacity-80 min-w-0">
             <span className="material-symbols-outlined text-[14px]">account_circle</span>
-            <span>{currentEmail}</span>
+            <span className="truncate">{currentEmail}</span>
           </div>
           <button
             onClick={onLogoutClick}
-            className="flex items-center gap-1 text-primary hover:text-secondary transition-colors"
+            className="flex items-center gap-1 text-primary hover:text-secondary transition-colors self-start sm:self-auto"
           >
             <span className="material-symbols-outlined text-[14px]">logout</span>
             <span>{language === "zh" ? "退出登录" : "Sign out"}</span>
@@ -78,10 +78,36 @@ export function Header({
         </div>
       )}
       <header className="bg-surface dark:bg-surface">
-        <nav className="flex justify-between items-center gap-6 w-full px-8 py-4 max-w-screen-2xl mx-auto">
+        <nav className="flex flex-col lg:flex-row justify-between lg:items-center gap-4 lg:gap-6 w-full px-4 sm:px-6 lg:px-8 py-4 max-w-screen-2xl mx-auto">
+          <div className="flex items-center justify-between gap-4 w-full lg:w-auto">
           <Link href="/" className="text-2xl font-headline font-bold tracking-tighter text-primary">
             GiuGEO
           </Link>
+            <div className="flex items-center gap-3 lg:hidden">
+              <div className="inline-flex items-center rounded-full border border-outline-variant/25 bg-surface-container-low p-1">
+                <button
+                  type="button"
+                  onClick={() => handleLanguageSwitch("zh")}
+                  className={`px-2.5 py-1.5 rounded-full text-[11px] font-bold tracking-wide transition-colors ${
+                    language === "zh" ? "bg-primary text-on-primary" : "text-on-surface-variant hover:text-on-surface"
+                  }`}
+                  aria-label="Switch to Simplified Chinese"
+                >
+                  简中
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleLanguageSwitch("en")}
+                  className={`px-2.5 py-1.5 rounded-full text-[11px] font-bold tracking-wide transition-colors ${
+                    language === "en" ? "bg-primary text-on-primary" : "text-on-surface-variant hover:text-on-surface"
+                  }`}
+                  aria-label="Switch to English"
+                >
+                  ENG
+                </button>
+              </div>
+            </div>
+          </div>
 
           <div className="hidden lg:flex items-center gap-6 flex-1 justify-center">
             {currentNavItems.map((item) => (
@@ -104,8 +130,8 @@ export function Header({
             ))}
           </div>
 
-          <div className="flex items-center space-x-4 shrink-0">
-            <div className="inline-flex items-center rounded-full border border-outline-variant/25 bg-surface-container-low p-1">
+          <div className="flex flex-col sm:flex-row lg:items-center gap-3 sm:gap-4 lg:shrink-0 w-full lg:w-auto">
+            <div className="hidden lg:inline-flex items-center rounded-full border border-outline-variant/25 bg-surface-container-low p-1">
               <button
                 type="button"
                 onClick={() => handleLanguageSwitch("zh")}
@@ -130,16 +156,17 @@ export function Header({
             {!isAuthenticated && onLoginClick && (
               <button
                 onClick={onLoginClick}
-                className="text-on-surface hover:bg-surface-container-low transition-colors duration-300 px-4 py-2 rounded-lg"
+                className="text-on-surface hover:bg-surface-container-low transition-colors duration-300 px-4 py-2 rounded-lg self-start sm:self-auto"
               >
                 {language === "zh" ? "登录" : "Log in"}
               </button>
             )}
             <Link
               href="/test"
-              className="bg-primary-container text-on-surface shadow-[0_0_15px_rgba(255,255,255,0.1)] hover:scale-95 duration-150 ease-in-out px-6 py-2 rounded-lg font-bold border border-outline-variant"
+              className="bg-primary-container text-on-surface shadow-[0_0_15px_rgba(255,255,255,0.1)] hover:scale-95 duration-150 ease-in-out px-4 sm:px-6 py-2 rounded-lg font-bold border border-outline-variant w-full sm:w-auto text-center"
             >
-              {language === "zh" ? "免费检测我的品牌" : "Run My Free Audit"}
+              <span className="sm:hidden">{language === "zh" ? "免费检测" : "Run Audit"}</span>
+              <span className="hidden sm:inline">{language === "zh" ? "免费检测我的品牌" : "Run My Free Audit"}</span>
             </Link>
           </div>
         </nav>

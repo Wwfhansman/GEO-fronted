@@ -1231,6 +1231,8 @@ export default function LandingPage() {
                     >
                       <button
                         onClick={() => setOpenFaqIdx(isOpen ? null : idx)}
+                        aria-expanded={isOpen}
+                        aria-controls={`faq-panel-${idx}`}
                         className="w-full text-left px-6 py-5 flex items-center justify-between pointer"
                       >
                         <span className={`text-[15px] font-bold ${isOpen ? "text-primary" : "text-on-surface"}`}>
@@ -1241,6 +1243,7 @@ export default function LandingPage() {
                         </span>
                       </button>
                       <div 
+                        id={`faq-panel-${idx}`}
                         className={`px-6 overflow-hidden transition-all duration-300 ease-in-out ${
                           isOpen ? "max-h-[500px] pb-6 opacity-100" : "max-h-0 opacity-0"
                         }`}

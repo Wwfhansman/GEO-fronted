@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useId, useRef, useState } from "react";
 
 import { bootstrapUser } from "../../lib/api";
 import { signInWithEmail, signUpWithEmail } from "../../lib/auth";
@@ -27,18 +27,96 @@ export function RegisterModal({
   bootstrapCompany = "",
 }: RegisterModalProps) {
   const { language } = useLanguage();
+  const idBase = useId();
+  const dialogTitleId = `${idBase}-title`;
+  const dialogDescriptionId = `${idBase}-description`;
+  const emailInputId = `${idBase}-email`;
+  const passwordInputId = `${idBase}-password`;
+  const phoneInputId = `${idBase}-phone`;
+  const companyInputId = `${idBase}-company`;
+  const errorId = `${idBase}-error`;
+  const noticeId = `${idBase}-notice`;
   const [tab, setTab] = useState<"signup" | "login">("signup");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [loading, setLoading] = useState(false);
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const submitLockedRef = useRef(false);
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  const closeButtonRef = useRef<HTMLButtonElement | null>(null);
 
   useEffect(() => {
     if (open) {
       setTurnstileToken(null);
     }
   }, [mode, open, tab]);
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const focusInitialTarget = window.setTimeout(() => {
+      const dialog = dialogRef.current;
+      if (!dialog) {
+        return;
+      }
+      const initialTarget = dialog.querySelector<HTMLElement>(
+        'iframe, input:not([disabled]):not([type="hidden"]), select:not([disabled]), button:not([disabled]), textarea:not([disabled]), [href], [tabindex]:not([tabindex="-1"])'
+      );
+      (initialTarget ?? closeButtonRef.current)?.focus();
+    }, 0);
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        onClose();
+        return;
+      }
+
+      if (event.key !== "Tab") {
+        return;
+      }
+
+      const dialog = dialogRef.current;
+      if (!dialog) {
+        return;
+      }
+
+      const focusable = Array.from(
+        dialog.querySelectorAll<HTMLElement>(
+          'iframe, button:not([disabled]), [href], input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+        )
+      ).filter((node) => !node.hasAttribute("aria-hidden"));
+
+      if (!focusable.length) {
+        return;
+      }
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      const active = document.activeElement as HTMLElement | null;
+
+      if (event.shiftKey && active === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && active === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.clearTimeout(focusInitialTarget);
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [onClose, open]);
 
   if (!open) return null;
 
@@ -169,25 +247,41 @@ export function RegisterModal({
   const requiresTurnstile = turnstileEnabled && (isBootstrap || tab === "signup");
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <div className="bg-surface-container-low border border-outline-variant/50 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden shadow-black">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) {
+          onClose();
+        }
+      }}
+    >
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={dialogTitleId}
+        aria-describedby={dialogDescriptionId}
+        className="bg-surface-container-low border border-outline-variant/50 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden shadow-black"
+      >
 
         {/* Header */}
         <div className="flex justify-between items-center p-6 border-b border-outline-variant/30 bg-surface-container-highest/20">
           <div>
-            <h2 className="text-xl font-bold font-headline">
+            <h2 id={dialogTitleId} className="text-xl font-bold font-headline">
               {isBootstrap ? (language === "zh" ? "补充注册信息" : "Complete registration details") : (language === "zh" ? "账户登录与注册" : "Log in or create account")}
             </h2>
-            <p className="text-xs text-on-surface-variant mt-1">
+            <p id={dialogDescriptionId} className="text-xs text-on-surface-variant mt-1">
               {isBootstrap
                 ? (language === "zh" ? "完成手机号和公司信息补录，继续检测" : "Add phone and company details to continue the audit")
                 : (language === "zh" ? "先完成邮箱注册，验证后再补充公司资料" : "Create your account first, then complete company details after email verification.")}
             </p>
           </div>
           <button
+            ref={closeButtonRef}
             type="button"
             onClick={onClose}
             className="text-on-surface-variant hover:text-white transition-colors"
+            aria-label={language === "zh" ? "关闭弹窗" : "Close dialog"}
           >
             <span className="material-symbols-outlined">close</span>
           </button>
@@ -215,23 +309,28 @@ export function RegisterModal({
           <form className="space-y-4" onSubmit={handleSubmit}>
             {isBootstrap ? (
               <div className="space-y-1">
-                <label className="text-xs font-bold uppercase tracking-widest text-on-surface-variant">{language === "zh" ? "邮箱" : "Email"}</label>
+                <label htmlFor={emailInputId} className="text-xs font-bold uppercase tracking-widest text-on-surface-variant">{language === "zh" ? "邮箱" : "Email"}</label>
                 <input
+                  id={emailInputId}
                   type="email"
                   name="email"
                   value={bootstrapEmail}
                   readOnly
                   aria-readonly="true"
+                  aria-describedby={notice ? noticeId : undefined}
                   className="w-full bg-surface-container-highest border border-outline-variant/50 rounded-lg p-3 text-on-surface opacity-60 cursor-not-allowed"
                 />
               </div>
             ) : (
               <div className="space-y-1">
-                <label className="text-xs font-bold uppercase tracking-widest text-on-surface-variant">{language === "zh" ? "邮箱" : "Email"}</label>
+                <label htmlFor={emailInputId} className="text-xs font-bold uppercase tracking-widest text-on-surface-variant">{language === "zh" ? "邮箱" : "Email"}</label>
                 <input
+                  id={emailInputId}
                   type="email"
                   name="email"
                   required
+                  aria-invalid={Boolean(error)}
+                  aria-describedby={error ? errorId : notice ? noticeId : undefined}
                   className="w-full bg-surface-container-lowest border border-outline-variant/50 focus:border-primary focus:ring-1 focus:ring-primary rounded-lg p-3 text-on-surface transition-colors"
                 />
               </div>
@@ -239,12 +338,15 @@ export function RegisterModal({
 
             {!isBootstrap && (
               <div className="space-y-1">
-                <label className="text-xs font-bold uppercase tracking-widest text-on-surface-variant">{language === "zh" ? "密码" : "Password"}</label>
+                <label htmlFor={passwordInputId} className="text-xs font-bold uppercase tracking-widest text-on-surface-variant">{language === "zh" ? "密码" : "Password"}</label>
                 <input
+                  id={passwordInputId}
                   type="password"
                   name="password"
                   required
                   minLength={6}
+                  aria-invalid={Boolean(error)}
+                  aria-describedby={error ? errorId : notice ? noticeId : undefined}
                   className="w-full bg-surface-container-lowest border border-outline-variant/50 focus:border-primary focus:ring-1 focus:ring-primary rounded-lg p-3 text-on-surface transition-colors"
                 />
               </div>
@@ -253,30 +355,36 @@ export function RegisterModal({
             {isBootstrap && (
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
-                  <label className="text-xs font-bold uppercase tracking-widest text-on-surface-variant">{language === "zh" ? "手机号" : "Phone"}</label>
+                  <label htmlFor={phoneInputId} className="text-xs font-bold uppercase tracking-widest text-on-surface-variant">{language === "zh" ? "手机号" : "Phone"}</label>
                   <input
+                    id={phoneInputId}
                     type="tel"
                     name="phone"
                     required
                     defaultValue={isBootstrap ? bootstrapPhone : undefined}
+                    aria-invalid={Boolean(error)}
+                    aria-describedby={error ? errorId : undefined}
                     className="w-full bg-surface-container-lowest border border-outline-variant/50 focus:border-primary focus:ring-1 focus:ring-primary rounded-lg p-3 text-on-surface transition-colors"
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-bold uppercase tracking-widest text-on-surface-variant">{language === "zh" ? "公司名" : "Company"}</label>
+                  <label htmlFor={companyInputId} className="text-xs font-bold uppercase tracking-widest text-on-surface-variant">{language === "zh" ? "公司名" : "Company"}</label>
                   <input
+                    id={companyInputId}
                     type="text"
                     name="companyName"
                     required
                     defaultValue={isBootstrap ? bootstrapCompany : undefined}
+                    aria-invalid={Boolean(error)}
+                    aria-describedby={error ? errorId : undefined}
                     className="w-full bg-surface-container-lowest border border-outline-variant/50 focus:border-primary focus:ring-1 focus:ring-primary rounded-lg p-3 text-on-surface transition-colors"
                   />
                 </div>
               </div>
             )}
 
-            {notice && <div className="text-green-400 text-sm mt-2 flex items-center gap-1"><span className="material-symbols-outlined text-[16px]">info</span>{notice}</div>}
-            {error && <div className="text-red-400 text-sm mt-2 flex items-center gap-1"><span className="material-symbols-outlined text-[16px]">error</span>{error}</div>}
+            {notice && <div id={noticeId} role="status" className="text-green-400 text-sm mt-2 flex items-center gap-1"><span className="material-symbols-outlined text-[16px]">info</span>{notice}</div>}
+            {error && <div id={errorId} role="alert" className="text-red-400 text-sm mt-2 flex items-center gap-1"><span className="material-symbols-outlined text-[16px]">error</span>{error}</div>}
 
             {requiresTurnstile ? (
               <div className="pt-2">

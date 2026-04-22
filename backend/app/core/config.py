@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     chatgpt_model: str = "openai/gpt-5.4-mini"
     deepseek_model: str = "deepseek-v3"
     doubao_model: str = "doubao-1.5-pro-32k"
-    tongyi_model: str = "qwen/qwen3.5-397b-a17b"
+    tongyi_model: str = "qwen/qwen3.5-plus"
     review_model_api_key: str = ""
     email_api_key: str = ""
     email_from: str = "noreply@geo.example.com"
