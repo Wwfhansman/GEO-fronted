@@ -7,6 +7,9 @@ import { LANGUAGE_COOKIE_KEY, normalizeLanguage } from "../lib/i18n";
 export const metadata = {
   title: "GiuGEO",
   description: "Measure and improve how your brand shows up across AI answers.",
+  other: {
+    "baidu-site-verification": "codeva-Ff1AAQrJ4v",
+  },
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
