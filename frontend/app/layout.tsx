@@ -9,6 +9,7 @@ export const metadata = {
   description: "Measure and improve how your brand shows up across AI answers.",
   other: {
     "baidu-site-verification": "codeva-Ff1AAQrJ4v",
+    "bytedance-verification-code": "8t7CWKyEgH0XyzKv12vY",
   },
 };
 
